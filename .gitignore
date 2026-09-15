@@ -1,0 +1,47 @@
+# Environments
+kivy_env/
+env/
+venv/
+.venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Kivy / Buildozer
+.buildozer/
+bin/
+
+# Databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# IDEs & System
+.vscode/
+.idea/
+.DS_Store
+
+# Antigravity artifacts & cache
+.gemini/
+
