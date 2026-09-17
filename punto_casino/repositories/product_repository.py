@@ -53,11 +53,26 @@ class InMemoryProductRepository:
             Product(
                 id_producto="RAP-01",
                 name="Empanada de Pino al Horno",
-                price=2000,
-                stock=30,
+                price=1200,
+                stock=12,
                 category="Comidas Rápidas",
                 ingredients="Masa casera tradicional, pino de carne picada, aceituna, huevo y pasas",
                 description="Clásica empanada chilena al horno",
+                is_offer=True,
+                original_price=2000,
+                offer_label="Por vencer hoy - 40% OFF",
+            ),
+            Product(
+                id_producto="OFER-01",
+                name="Lasaña Boloñesa (Últimas porciones)",
+                price=2500,
+                stock=6,
+                category="Menú Normal",
+                ingredients="Carne seleccionada, pasta fresca, salsa bechamel y queso fundido",
+                description="Liquidación especial almuerzo casino central",
+                is_offer=True,
+                original_price=4800,
+                offer_label="Liquidación de almuerzo - 48% OFF",
             ),
             Product(
                 id_producto="RAP-02",
@@ -103,14 +118,20 @@ class InMemoryProductRepository:
             return list(self._products.values())
         return [p for p in self._products.values() if p.is_active]
 
+    def get_offers(self) -> List[Product]:
+        """Retrieve all discounted / near-expiry active products with stock."""
+        return [p for p in self.get_all() if p.is_offer and p.is_active]
+
     def get_by_id(self, product_id: str) -> Optional[Product]:
         """Retrieve product by its unique ID (CRUD: Read)."""
         return self._products.get(product_id)
 
     def get_by_category(self, category: str) -> List[Product]:
-        """Retrieve products filtered by menu category."""
+        """Retrieve products filtered by menu category or special offer tab."""
         if not category or category == "Todos":
             return self.get_all()
+        if "oferta" in category.lower():
+            return self.get_offers()
         return [p for p in self.get_all() if p.category.lower() == category.lower()]
 
     def search(self, query: str) -> List[Product]:

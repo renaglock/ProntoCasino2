@@ -15,6 +15,7 @@ from kivymd.uix.textfield import (
 
 from punto_casino.models.user import UserRole
 from punto_casino.services.auth_service import AuthService
+from punto_casino.views.components.ui_elements import create_button
 
 
 class LoginScreen(MDScreen):
@@ -86,9 +87,9 @@ class LoginScreen(MDScreen):
         form_card = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(300),
+            height=dp(360),
             padding=[dp(22), dp(18), dp(22), dp(18)],
-            spacing=dp(12),
+            spacing=dp(10),
             style="elevated",
             md_bg_color=[1.0, 1.0, 1.0, 1],  # Blanco puro
             radius=[dp(18), dp(18), dp(18), dp(18)],
@@ -151,14 +152,26 @@ class LoginScreen(MDScreen):
         form_card.add_widget(self.error_label)
 
         # Submit Button (Comfortable tap target, UCT styling)
-        btn_submit = MDButton(
-            MDButtonText(text="Iniciar Sesión"),
+        btn_submit = create_button(
+            text="Iniciar Sesión Institucional",
+            icon="login",
             style="filled",
             size_hint=(1, None),
-            height=dp(46),
+            height=dp(44),
             on_release=lambda x: self._on_credentials_submit(),
         )
         form_card.add_widget(btn_submit)
+
+        # Guest One-Tap Access Button (Section 2 & 6 MVP with high contrast and no square emoji glyph)
+        btn_guest = create_button(
+            text="Continuar como Invitado (Sin Registro)",
+            icon="account-outline",
+            style="tonal",
+            size_hint=(1, None),
+            height=dp(42),
+            on_release=lambda x: self._on_guest_access(),
+        )
+        form_card.add_widget(btn_guest)
         content_box.add_widget(form_card)
 
         # 3. Institutional Security Notice (Reassuring, clean, no square unprinted glyphs)
@@ -219,3 +232,10 @@ class LoginScreen(MDScreen):
             self.on_login_success(user, target_screen)
         else:
             self.error_label.text = "[color=#EF4444]Credenciales incorrectas o usuario no encontrado[/color]"
+
+    def _on_guest_access(self):
+        """Allow unauthenticated walk-in guests to browse catalog and order immediately."""
+        user = self.auth_service.quick_login("invitado")
+        if user:
+            self.on_login_success(user, "catalog")
+

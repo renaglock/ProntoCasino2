@@ -1,7 +1,7 @@
 """Order service orchestrating cart, reservations, and numbered comandas."""
 
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from punto_casino.models.order import Order, OrderItem, OrderStatus
 from punto_casino.models.user import UserRole
 from punto_casino.repositories.product_repository import InMemoryProductRepository
@@ -124,7 +124,7 @@ class OrderService:
         return [o for o in self.order_repo.get_all() if o.customer_id == current_user.id_usuario]
 
     def cancel_order(self, order_id: str) -> bool:
-        """Cancel a pending or confirmed order, restoring dishes stock."""
+        """Cancel a pending or confirmed order, restoring dishes stock and student balance."""
         order = self.order_repo.get_by_id(order_id)
         if not order:
             return False
@@ -137,5 +137,26 @@ class OrderService:
             if prod:
                 self.product_repo.update_stock(prod.id_producto, prod.stock + item.quantity)
 
+        # Refund student wallet if paid with balance
+        if order.customer_role.upper() == "CLIENT" and order.customer_id:
+            self.auth_service.refund_user_balance(order.customer_id, order.total)
+
         # Update order status
         return self.order_repo.update_status(order_id, OrderStatus.CANCELLED)
+
+    def get_sales_metrics(self) -> Dict[str, Any]:
+        """Aggregate financial and operational sales metrics for administration."""
+        orders = self.order_repo.get_all()
+        delivered = [o for o in orders if o.status == OrderStatus.DELIVERED]
+        pending = [o for o in orders if o.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)]
+        cancelled = [o for o in orders if o.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED)]
+
+        total_collected = sum(o.total for o in delivered)
+        return {
+            "total_orders": len(orders),
+            "delivered_count": len(delivered),
+            "pending_count": len(pending),
+            "cancelled_count": len(cancelled),
+            "total_collected": total_collected,
+        }
+

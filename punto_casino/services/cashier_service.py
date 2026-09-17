@@ -53,11 +53,17 @@ class CashierService:
                 self.product_repo.update_stock(prod.id_producto, prod.stock + item.quantity)
 
         # Refund student wallet if student
-        if order.customer_role == "CLIENT":
-            self.auth_service.refund_balance(order.total)
+        if order.customer_role.upper() == "CLIENT" and order.customer_id:
+            self.auth_service.refund_user_balance(order.customer_id, order.total)
 
         self.order_repo.update_status(order_id, OrderStatus.REJECTED)
         return self.order_repo.get_by_id(order_id)
+
+    def get_history_orders(self) -> List[Order]:
+        """Fetch all completed, delivered, rejected, or cancelled orders for shift audit."""
+        completed_statuses = (OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REJECTED)
+        return [o for o in self.order_repo.get_all() if o.status in completed_statuses]
+
 
     def mark_ready(self, order_id: str) -> Optional[Order]:
         """Mark comanda prepared and ready for student pickup at counter."""

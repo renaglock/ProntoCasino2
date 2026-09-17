@@ -4,7 +4,6 @@ from kivy.metrics import dp
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
@@ -14,6 +13,7 @@ from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.utils.qr_generator import generate_qr_texture
+from punto_casino.views.components.ui_elements import create_button
 
 
 class ReservationsScreen(MDScreen):
@@ -53,11 +53,13 @@ class ReservationsScreen(MDScreen):
             font_style="Title",
             role="medium",
         )
-        refresh_btn = MDButton(
-            MDButtonText(text="Refrescar"),
+        refresh_btn = create_button(
+            text="Refrescar",
+            icon="refresh",
             style="tonal",
-            size_hint_y=None,
+            size_hint=(None, None),
             height=dp(34),
+            width=dp(110),
             on_release=lambda x: self.refresh_reservations(),
         )
         header.add_widget(title)
@@ -104,7 +106,7 @@ class ReservationsScreen(MDScreen):
                 orientation="vertical",
                 size_hint_y=None,
                 height=dp(100),
-                padding=dp(16),
+                padding=[dp(16), dp(14), dp(16), dp(14)],
                 spacing=dp(6),
                 style="elevated",
                 md_bg_color=[1.0, 1.0, 1.0, 1],
@@ -127,12 +129,13 @@ class ReservationsScreen(MDScreen):
             status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
             status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
 
+            # CRITICAL FIX: Explicit non-zero height dp(114) prevents OpenGL FBO Incomplete Attachment (36054) crash
             card = MDCard(
                 orientation="vertical",
                 size_hint_y=None,
-                height=dp(125),
+                height=dp(114),
                 padding=[dp(14), dp(10), dp(14), dp(10)],
-                spacing=dp(4),
+                spacing=dp(5),
                 style="elevated",
                 md_bg_color=[1.0, 1.0, 1.0, 1],
                 radius=[dp(14), dp(14), dp(14), dp(14)],
@@ -170,19 +173,20 @@ class ReservationsScreen(MDScreen):
                 height=dp(20),
             )
 
-            # Bottom Line: Total & View QR button
-            bottom = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(32))
+            # Bottom Line: Total & View QR button with high contrast
+            bottom = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(34))
             total_lbl = MDLabel(
                 text=f"[b]Total: {format_currency(order.total)}[/b] [color=#64748B]• {order.created_at.strftime('%H:%M')}[/color]",
                 markup=True,
                 font_style="Label",
                 role="medium",
             )
-            qr_btn = MDButton(
-                MDButtonText(text="Ver QR y Detalle"),
+            qr_btn = create_button(
+                text="Ver QR y Detalle",
+                icon="qrcode-scan",
                 style="filled",
-                size_hint_y=None,
-                height=dp(28),
+                size_hint=(None, None),
+                height=dp(32),
                 on_release=lambda x, o=order: self._show_order_detail_modal(o),
             )
             bottom.add_widget(total_lbl)
@@ -203,7 +207,7 @@ class ReservationsScreen(MDScreen):
         self.detail_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(420),
+            height=dp(490),
             padding=[dp(18), dp(14), dp(18), dp(14)],
             spacing=dp(8),
             style="elevated",
@@ -266,17 +270,30 @@ class ReservationsScreen(MDScreen):
         )
         self.detail_modal.add_widget(total_line)
 
-        # 3. QR Code visual texture
+        # 3. QR Code visual texture (Enlarged & framed for immediate counter pickup scanning)
         qr_payload = order.pickup_qr or order.id_pedido
         try:
             qr_tex = generate_qr_texture(qr_payload)
+            qr_card = MDCard(
+                size_hint=(None, None),
+                size=(dp(216), dp(216)),
+                pos_hint={"center_x": 0.5},
+                style="filled",
+                theme_bg_color="Custom",
+                md_bg_color=[1.0, 1.0, 1.0, 1.0],
+                radius=[dp(12), dp(12), dp(12), dp(12)],
+                line_color=[0.04, 0.22, 0.44, 0.2],
+                elevation=2,
+                padding=dp(4),
+            )
             qr_widget = Image(
                 texture=qr_tex,
-                size_hint=(None, None),
-                size=(dp(140), dp(140)),
-                pos_hint={"center_x": 0.5},
+                size_hint=(1, 1),
+                allow_stretch=True,
+                keep_ratio=True,
             )
-            self.detail_modal.add_widget(qr_widget)
+            qr_card.add_widget(qr_widget)
+            self.detail_modal.add_widget(qr_card)
         except Exception as e:
             err_lbl = MDLabel(
                 text=f"[color=#EF4444]Error generando QR: {e}[/color]",
@@ -295,24 +312,29 @@ class ReservationsScreen(MDScreen):
             font_style="Label",
             role="small",
             size_hint_y=None,
-            height=dp(30),
+            height=dp(26),
         )
         self.detail_modal.add_widget(instr_lbl)
 
-        # 4. Actions: Cancel order (if eligible) & Close
+        # 4. Actions: Cancel order (if eligible) & Close with high contrast
         actions_box = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(38))
 
         if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
-            cancel_btn = MDButton(
-                MDButtonText(text="Cancelar Reserva"),
+            cancel_btn = create_button(
+                text="Cancelar Reserva",
+                icon="close",
                 style="outlined",
+                size_hint=(0.5, None),
+                height=dp(36),
                 on_release=lambda x, o=order: self._ask_cancel_confirmation(o),
             )
             actions_box.add_widget(cancel_btn)
 
-        close_btn = MDButton(
-            MDButtonText(text="Cerrar"),
+        close_btn = create_button(
+            text="Cerrar",
             style="filled",
+            size_hint=(0.5 if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED) else 1.0, None),
+            height=dp(36),
             on_release=lambda x: self._hide_modals(),
         )
         actions_box.add_widget(close_btn)
@@ -345,21 +367,26 @@ class ReservationsScreen(MDScreen):
             height=dp(24),
         )
         c_msg = MDLabel(
-            text=f"¿Estás seguro de cancelar la Comanda #{order.comanda_number} ({format_currency(order.total)})? Los platos reservados volverán al inventario del casino.",
+            text=f"¿Estás seguro de cancelar la Comanda #{order.comanda_number} ({format_currency(order.total)})? Los platos volverán al inventario del casino.",
             font_style="Body",
             role="small",
             size_hint_y=None,
             height=dp(42),
         )
         c_btns = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(38))
-        btn_back = MDButton(
-            MDButtonText(text="Volver"),
+        btn_back = create_button(
+            text="Volver",
             style="tonal",
+            size_hint=(0.5, None),
+            height=dp(36),
             on_release=lambda x: self._show_order_detail_modal(order),
         )
-        btn_confirm = MDButton(
-            MDButtonText(text="Sí, Cancelar"),
-            style="filled",
+        btn_confirm = create_button(
+            text="Sí, Cancelar",
+            icon="check",
+            style="danger",
+            size_hint=(0.5, None),
+            height=dp(36),
             on_release=lambda x, o=order: self._execute_cancellation(o),
         )
         c_btns.add_widget(btn_back)
@@ -378,7 +405,7 @@ class ReservationsScreen(MDScreen):
         if success:
             self.status_label.text = f"[color=#10B981]Comanda #{order.comanda_number} cancelada exitosamente.[/color]"
         else:
-            self.status_label.text = "[color=#EF4444]No se pudo cancelar la comanda.[/color]"
+            self.status_label.text = f"[color=#EF4444]No se pudo cancelar la comanda.[/color]"
         self.refresh_reservations()
 
     def _hide_modals(self):

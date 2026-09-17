@@ -5,3 +5,5 @@ pillow>=10.0.0
 materialyoucolor>=3.0.4
 asynckivy>=0.6.4
 asyncgui>=0.6.3
+opencv-python>=4.8.0
+numpy>=1.24.0

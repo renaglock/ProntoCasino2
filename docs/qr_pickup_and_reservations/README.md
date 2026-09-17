@@ -1,7 +1,7 @@
-# Feature: Códigos QR de Retiro, Estado "Pendiente por Pagar", Cancelación de Comandas y Escáner de Caja
+# Feature: Códigos QR de Retiro en Alta Definición, Lector QR Eficiente con OpenCV y Flujo de Cobro
 
-- **Fecha**: 2026-09-15
-- **Estado**: Completada
+- **Fecha**: 2026-09-17
+- **Estado**: Completada y Verificada
 - **Autor / Responsable**: Antigravity Punto Casino Engineer
 - **Referencia a Requerimientos**: [docs/requerimientos.md](../requerimientos.md) (Sección 1.1, 1.2, 2.1 y Flujo Operacional de Casino)
 
@@ -10,9 +10,13 @@
 ## 1. Descripción y Objetivo
 Esta funcionalidad implementa el ciclo completo de entrega y retiro rápido de pedidos en el casino de la Universidad Católica de Temuco (UCT):
 1. **Identificación Explícita de Reserva Pendiente**: Las reservas de comanda en cola muestran explícitamente el estado **"Pendiente por pagar"** con distintivo ámbar de alerta (`#D97706`).
-2. **Desglose de Comanda y Código QR Visual**: Al interactuar con cualquier reserva, se despliega un panel modal detallado con la lista de platos solicitados, subtotales por ítem, monto total a pagar en caja y el **código QR visual de entrega** generado en memoria con colores institucionales UCT (`#0A3871`).
-3. **Cancelación Segura de Reserva**: Los clientes pueden cancelar comandas en estado `PENDING` o `CONFIRMED` antes de su retiro, restituyendo automáticamente el stock de platos a la cocina.
-4. **Módulo de Escáner y Cobro para Cajero**: El cajero (Cristian - Sabor Único) dispone de un módulo escáner/lector de comandas para verificar ítems, procesar el cobro y registrar la entrega final (`DELIVERED`).
+2. **Código QR Agrando en Alta Definición**: En `ReservationsScreen`, el código QR se amplió a `size=(dp(216), dp(216))` con textura generada en `box_size=12` y `border=3`, enmarcado en una tarjeta limpia con bordes suaves que facilita el escaneo a distancia desde cámaras y teléfonos móviles.
+3. **Lector QR Efectivo y Eficiente con OpenCV**: En `CashierScreen`, se integró un módulo escáner en tiempo real respaldado por `cv2.QRCodeDetector()` de OpenCV:
+   - **Cámara en Vivo**: Captura frames de webcam en segundo plano a 20 FPS, detectando y decodificando el código QR en milisegundos de forma no bloqueante.
+   - **Detección Automática**: Al detectar un QR válido, detiene la cámara de inmediato, autocompleta el código de la comanda y la verifica en pantalla.
+   - **Simulación y Fallback Manual**: Permite probar la decodificación OpenCV con un solo clic sobre comandas activas o ingresar códigos manualmente con pistolas de códigos de barra.
+   - **Liberación Segura de Recursos**: Garantiza el cierre y liberación del dispositivo de cámara (`cap.release()`) al ocultar el modal o cambiar de pantalla.
+4. **Cancelación Segura de Reserva**: Los clientes pueden cancelar comandas en estado `PENDING` o `CONFIRMED` antes de su retiro, restituyendo automáticamente el stock de platos a la cocina.
 
 ---
 

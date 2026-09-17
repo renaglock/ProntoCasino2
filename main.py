@@ -12,8 +12,8 @@ from kivymd.uix.screenmanager import MDScreenManager
 
 # 1. Configure Smartphone Dimensions (Mobile Resolution: 380x720)
 Window.size = (380, 720)
-Window.minimum_width = 360
-Window.minimum_height = 640
+Window.minimum_size = (360, 640)
+
 
 # 2. Load Kivy Language Stylesheet (CSS equivalent for UCT branding)
 styles_file = os.path.join(os.path.dirname(__file__), "punto_casino", "views", "styles.kv")
@@ -34,6 +34,7 @@ from punto_casino.views.screens.catalog_screen import CatalogScreen
 from punto_casino.views.screens.cashier_screen import CashierScreen
 from punto_casino.views.screens.admin_screen import AdminScreen
 from punto_casino.views.screens.reservations_screen import ReservationsScreen
+from punto_casino.views.components.ui_elements import create_button
 
 
 class ProntoCasinoApp(MDApp):
@@ -82,11 +83,13 @@ class ProntoCasinoApp(MDApp):
             size_hint_x=None,
             width=dp(130),
         )
-        self.logout_btn = MDButton(
-            MDButtonText(text="Salir"),
+        self.logout_btn = create_button(
+            text="Salir",
+            icon="logout",
             style="tonal",
-            size_hint_y=None,
+            size_hint=(None, None),
             height=dp(34),
+            width=dp(90),
             on_release=lambda x: self._on_logout(),
         )
 
@@ -120,6 +123,7 @@ class ProntoCasinoApp(MDApp):
         )
         self.admin_screen = AdminScreen(
             product_repo=self.product_repo,
+            order_service=self.order_service,
             on_navigate=self.navigate_to,
             name="admin",
         )
@@ -130,11 +134,11 @@ class ProntoCasinoApp(MDApp):
         self.sm.add_widget(self.cashier_screen)
         self.sm.add_widget(self.admin_screen)
 
-        # 3. Bottom Navigation Bar (Dynamic per role)
+        # 3. Bottom Navigation Bar (Dynamic per role, high contrast)
         self.bottom_nav = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
-            height=dp(52),
+            height=dp(54),
             padding=[dp(8), dp(4), dp(8), dp(4)],
             spacing=dp(6),
             md_bg_color=[1.0, 1.0, 1.0, 1],  # Blanco
@@ -154,7 +158,7 @@ class ProntoCasinoApp(MDApp):
             self.top_bar.height = dp(52)
             self.top_bar.opacity = 1
             self.top_bar.disabled = False
-            self.bottom_nav.height = dp(52)
+            self.bottom_nav.height = dp(54)
             self.bottom_nav.opacity = 1
             self.bottom_nav.disabled = False
         else:
@@ -167,7 +171,8 @@ class ProntoCasinoApp(MDApp):
 
     def _on_login_success(self, user_key: str, target_screen: str):
         user = self.auth_service.current_user
-        self.user_chip_lbl.text = f"[color=#E1F5FE]{user.name.split()[0]}[/color]"
+        first_name = "Invitado" if user.role == UserRole.GUEST else user.name.split()[0]
+        self.user_chip_lbl.text = f"[b][color=#E1F5FE]{first_name}[/color][/b]"
         self._set_bars_visible(True)
         self._rebuild_bottom_nav_for_role(user.role)
         self.navigate_to(target_screen)
@@ -177,17 +182,27 @@ class ProntoCasinoApp(MDApp):
         self._set_bars_visible(False)
         self.navigate_to("login")
 
+    def _go_to_offers(self):
+        """Navigate directly to the Catalog filtered by active discounts/offers."""
+        self.catalog_screen.selected_category = "Ofertas"
+        self.navigate_to("catalog")
+        if hasattr(self.catalog_screen, "_rebuild_category_tabs"):
+            self.catalog_screen._rebuild_category_tabs()
+        self.catalog_screen.refresh_catalog()
+
     def _rebuild_bottom_nav_for_role(self, role: UserRole):
-        """Reconstruct bottom navigation buttons tailored to the logged-in role."""
+        """Reconstruct bottom navigation buttons tailored to the logged-in role with high contrast."""
         self.bottom_nav.clear_widgets()
 
-        btn_menus = MDButton(
-            MDButtonText(text="Menús"),
+        btn_menus = create_button(
+            text="Menús",
+            icon="silverware-fork-knife",
             style="tonal",
-            on_release=lambda x: self.navigate_to("catalog"),
+            on_release=lambda x: self._go_to_all_menus(),
         )
-        btn_reservas = MDButton(
-            MDButtonText(text="Reservas"),
+        btn_reservas = create_button(
+            text="Reservas",
+            icon="receipt",
             style="tonal",
             on_release=lambda x: self.navigate_to("reservations"),
         )
@@ -195,20 +210,29 @@ class ProntoCasinoApp(MDApp):
         self.bottom_nav.add_widget(btn_reservas)
 
         if role == UserRole.CASHIER or role == UserRole.ADMIN:
-            btn_caja = MDButton(
-                MDButtonText(text="Caja"),
+            btn_caja = create_button(
+                text="Caja",
+                icon="cash-register",
                 style="tonal",
                 on_release=lambda x: self.navigate_to("cashier"),
             )
             self.bottom_nav.add_widget(btn_caja)
 
         if role == UserRole.ADMIN:
-            btn_admin = MDButton(
-                MDButtonText(text="Admin"),
+            btn_admin = create_button(
+                text="Admin",
+                icon="shield-account",
                 style="tonal",
                 on_release=lambda x: self.navigate_to("admin"),
             )
             self.bottom_nav.add_widget(btn_admin)
+
+    def _go_to_all_menus(self):
+        self.catalog_screen.selected_category = "Todos"
+        self.navigate_to("catalog")
+        if hasattr(self.catalog_screen, "_rebuild_category_tabs"):
+            self.catalog_screen._rebuild_category_tabs()
+        self.catalog_screen.refresh_catalog()
 
     def navigate_to(self, screen_name: str):
         if screen_name in self.sm.screen_names:

@@ -34,12 +34,12 @@ def parse_pickup_payload(payload_str: str) -> Optional[Dict[str, Any]]:
 
 
 def generate_qr_texture(payload_str: str):
-    """Generate an in-memory Kivy Texture from a QR payload string with UCT navy styling."""
+    """Generate a crisp, high-resolution in-memory Kivy Texture from a QR payload string with UCT navy styling."""
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=8,
-        border=2,
+        box_size=12,
+        border=3,
     )
     qr.add_data(payload_str)
     qr.make(fit=True)
@@ -50,3 +50,51 @@ def generate_qr_texture(payload_str: str):
     buf.seek(0)
     core_img = CoreImage(buf, ext="png")
     return core_img.texture
+
+
+def decode_qr_image(image_input: Any) -> Optional[str]:
+    """Decode QR payload from an image file path, numpy ndarray, PIL Image, or bytes using OpenCV."""
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        return None
+
+    try:
+        img_bgr = None
+        if isinstance(image_input, str):
+            img_bgr = cv2.imread(image_input)
+        elif isinstance(image_input, np.ndarray):
+            img_bgr = image_input
+        elif isinstance(image_input, bytes):
+            nparr = np.frombuffer(image_input, np.uint8)
+            img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        elif hasattr(image_input, "convert"):  # PIL Image
+            rgb = np.array(image_input.convert("RGB"))
+            img_bgr = rgb[:, :, ::-1].copy()
+
+        if img_bgr is None:
+            return None
+
+        detector = cv2.QRCodeDetector()
+        val, _, _ = detector.detectAndDecode(img_bgr)
+        if val and val.strip():
+            return val.strip()
+
+        # Fallback: try grayscale thresholding for lower contrast lighting
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        val, _, _ = detector.detectAndDecode(gray)
+        if val and val.strip():
+            return val.strip()
+
+        return None
+    except Exception:
+        return None
+
+
+def scan_qr_from_frame(frame) -> Optional[Dict[str, Any]]:
+    """Detect and parse QR comanda from a live video capture frame."""
+    decoded_str = decode_qr_image(frame)
+    if decoded_str:
+        return parse_pickup_payload(decoded_str)
+    return None

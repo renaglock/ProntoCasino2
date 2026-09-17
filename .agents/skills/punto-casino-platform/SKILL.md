@@ -9,7 +9,7 @@ description: >-
 
 # Punto Casino Platform Engineering Skill
 
-This skill provides the comprehensive engineering blueprint, domain rules, architectural standards, and operational procedures for building the **Punto Casino Universidad** mobile platform using **Python** and **KivyMD**, based directly on [`docs/requerimientos.md`](file:///home/renato/Dev/DesarrolloMovil/docs/requerimientos.md).
+This skill provides the comprehensive engineering blueprint, domain rules, architectural standards, and operational procedures for building the **Punto Casino Universidad** mobile platform using **Python** and **KivyMD**, based directly on [`docs/requerimientos.md`](file:///e:/Rena/ProntoCasino2/docs/requerimientos.md).
 
 ---
 
@@ -245,7 +245,7 @@ punto_casino/
 
 ## 6. Git Discipline & Safety Guidelines
 
-In strict accordance with Section 7 of [`docs/requerimientos.md`](file:///home/renato/Dev/DesarrolloMovil/docs/requerimientos.md):
+In strict accordance with Section 7 of [`docs/requerimientos.md`](file:///e:/Rena/ProntoCasino2/docs/requerimientos.md):
 - **Branch Target**: Work on feature branches or `develop`. Never push directly to `main`.
 - **Commit Messages**: Conventional commits format (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`).
 - **Daily Push Cadence**: Push completed features after daily development sessions.

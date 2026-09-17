@@ -1,9 +1,9 @@
-"""Responsive product catalog matching PRONTO CASINO UCT wireframe with clean layout."""
+"""Responsive product catalog matching PRONTO CASINO UCT wireframe with clean layout, vibrant offers, and high contrast."""
 
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.button import MDButtonIcon
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
@@ -13,10 +13,18 @@ from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.formatters import format_currency
+from punto_casino.views.components.ui_elements import (
+    create_button,
+    create_offer_badge,
+    VIBRANT_ORANGE,
+    WARM_PEACH,
+    UCT_NAVY,
+    WHITE,
+)
 
 
 class CatalogScreen(MDScreen):
-    """Product catalog with responsive card layout, category filtering, and student balance."""
+    """Product catalog with responsive card layout, category filtering, vibrant offer cards, and student/guest balance."""
 
     def __init__(self, order_service: OrderService, auth_service: AuthService, **kwargs):
         super().__init__(**kwargs)
@@ -29,6 +37,7 @@ class CatalogScreen(MDScreen):
         self.cart_label = None
         self.status_label = None
         self.products_container = None
+        self.cat_box = None
         self.confirm_modal = None
 
         self._build_ui()
@@ -40,15 +49,17 @@ class CatalogScreen(MDScreen):
             spacing=dp(8),
         )
 
-        # 1. Location & Subtitle Banner
+        # 1. Location & User Role Banner (Symmetrical & High Contrast)
         banner = MDCard(
             orientation="horizontal",
             size_hint_y=None,
-            height=dp(36),
-            padding=[dp(12), dp(4), dp(12), dp(4)],
+            height=dp(38),
+            padding=[dp(14), dp(6), dp(14), dp(6)],
             style="elevated",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(10), dp(10), dp(10), dp(10)],
+            line_color=[0.87, 0.92, 0.95, 1],
+            elevation=1,
         )
         location_label = MDLabel(
             text=f"[color=#0A3871][b]{config.LOCATION_SUBTITLE}[/b][/color]",
@@ -68,32 +79,13 @@ class CatalogScreen(MDScreen):
         banner.add_widget(self.balance_label)
         self.root_layout.add_widget(banner)
 
-        # 2. Category Tabs Horizontal Scroll
-        cat_scroll = ScrollView(size_hint=(1, None), height=dp(38), do_scroll_x=True, do_scroll_y=False)
-        cat_box = MDBoxLayout(orientation="horizontal", spacing=dp(6), size_hint_x=None)
-        cat_box.bind(minimum_width=cat_box.setter("width"))
+        # 2. Category Tabs Horizontal Scroll (With crisp icons and no square glyphs)
+        cat_scroll = ScrollView(size_hint=(1, None), height=dp(42), do_scroll_x=True, do_scroll_y=False)
+        self.cat_box = MDBoxLayout(orientation="horizontal", spacing=dp(6), size_hint_x=None)
+        self.cat_box.bind(minimum_width=self.cat_box.setter("width"))
 
-        category_aliases = [
-            ("Todos", "Todos"),
-            ("Menú Normal", "Normal"),
-            ("Menú Ejecutivo", "Ejecutivo"),
-            ("Menú Hipocalórico", "Hipocalórico"),
-            ("Menú Vegetariano", "Vegetariano"),
-            ("Comidas Rápidas", "Rápidas"),
-            ("Bebidas", "Bebidas"),
-        ]
-
-        for full_cat, display_name in category_aliases:
-            btn = MDButton(
-                MDButtonText(text=display_name),
-                style="tonal",
-                size_hint_y=None,
-                height=dp(34),
-                on_release=lambda x, c=full_cat: self._on_select_category(c),
-            )
-            cat_box.add_widget(btn)
-
-        cat_scroll.add_widget(cat_box)
+        self._rebuild_category_tabs()
+        cat_scroll.add_widget(self.cat_box)
         self.root_layout.add_widget(cat_scroll)
 
         # 3. Products List (Scrollable)
@@ -107,29 +99,50 @@ class CatalogScreen(MDScreen):
         scroll.add_widget(self.products_container)
         self.root_layout.add_widget(scroll)
 
-        # 4. Cart Summary & Action Footer
+        # 4. Cart Summary & Action Footer (High Contrast)
         footer = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(88),
+            height=dp(92),
             padding=[dp(12), dp(8), dp(12), dp(8)],
             spacing=dp(4),
             style="elevated",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(14), dp(14), dp(14), dp(14)],
+            line_color=[0.87, 0.92, 0.95, 1],
+            elevation=2,
         )
-        self.cart_label = MDLabel(text="Carrito vacío", bold=True, size_hint_y=None, height=dp(20))
-        self.status_label = MDLabel(text="", size_hint_y=None, height=dp(16), font_style="Label", role="small")
+        self.cart_label = MDLabel(
+            text="Carrito vacío",
+            bold=True,
+            size_hint_y=None,
+            height=dp(20),
+            font_style="Title",
+            role="small",
+        )
+        self.status_label = MDLabel(
+            text="",
+            size_hint_y=None,
+            height=dp(16),
+            font_style="Label",
+            role="small",
+        )
 
         actions_box = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(34))
-        clear_btn = MDButton(
-            MDButtonText(text="Vaciar"),
+        clear_btn = create_button(
+            text="Vaciar",
+            icon="trash-can-outline",
             style="outlined",
+            size_hint=(0.35, None),
+            height=dp(34),
             on_release=lambda x: self._on_clear_cart(),
         )
-        order_btn = MDButton(
-            MDButtonText(text="Reservar Comanda"),
+        order_btn = create_button(
+            text="Reservar Comanda",
+            icon="cart-check",
             style="filled",
+            size_hint=(0.65, None),
+            height=dp(34),
             on_release=lambda x: self._ask_reservation_confirmation(),
         )
         actions_box.add_widget(clear_btn)
@@ -143,6 +156,41 @@ class CatalogScreen(MDScreen):
         self.add_widget(self.root_layout)
         self.refresh_catalog()
 
+    def _rebuild_category_tabs(self):
+        """Build category filter buttons with crisp vector icons and active highlights."""
+        self.cat_box.clear_widgets()
+
+        categories = [
+            ("Todos", "Todos", "silverware"),
+            ("Ofertas", "Ofertas", "sale"),
+            ("Menú Normal", "Normal", "food"),
+            ("Menú Ejecutivo", "Ejecutivo", "star"),
+            ("Menú Hipocalórico", "Hipocalórico", "leaf"),
+            ("Menú Vegetariano", "Vegetariano", "sprout"),
+            ("Comidas Rápidas", "Rápidas", "hamburger"),
+            ("Bebidas", "Bebidas", "cup"),
+        ]
+
+        for full_cat, display_name, icon_name in categories:
+            is_active = (self.selected_category == full_cat) or (
+                full_cat == "Ofertas" and "oferta" in self.selected_category.lower()
+            )
+
+            if is_active:
+                btn_style = "offer" if "oferta" in full_cat.lower() else "filled"
+            else:
+                btn_style = "tonal"
+
+            btn = create_button(
+                text=display_name,
+                icon=icon_name,
+                style=btn_style,
+                size_hint=(None, None),
+                height=dp(34),
+                on_release=lambda x, c=full_cat: self._on_select_category(c),
+            )
+            self.cat_box.add_widget(btn)
+
     def on_enter(self):
         """Update balance and products on screen enter."""
         self.refresh_catalog()
@@ -151,45 +199,123 @@ class CatalogScreen(MDScreen):
         user = self.auth_service.current_user
         if user.role == UserRole.CLIENT:
             self.balance_label.text = "[color=#0288D1][b]Estudiante UCT[/b][/color]"
+        elif user.role == UserRole.GUEST:
+            self.balance_label.text = "[color=#EA580C][b]Invitado UCT[/b][/color]"
         else:
-            self.balance_label.text = f"[color=#64748B]{user.role.value}[/color]"
+            self.balance_label.text = f"[color=#64748B][b]{user.role.value}[/b][/color]"
 
         self.products_container.clear_widgets()
         products = self.order_service.product_repo.get_by_category(self.selected_category)
 
-        for prod in products:
-            card = MDCard(
+        # Empty state handling
+        if not products:
+            empty_card = MDCard(
                 orientation="vertical",
                 size_hint_y=None,
-                height=dp(112),
-                padding=[dp(12), dp(8), dp(12), dp(8)],
-                spacing=dp(3),
+                height=dp(110),
+                padding=[dp(16), dp(14), dp(16), dp(14)],
+                spacing=dp(6),
                 style="elevated",
                 md_bg_color=[1, 1, 1, 1],
                 radius=[dp(12), dp(12), dp(12), dp(12)],
+                line_color=[0.88, 0.92, 0.96, 1],
+            )
+            empty_card.add_widget(
+                MDLabel(
+                    text="[b][color=#0A3871]No hay productos disponibles[/color][/b]",
+                    markup=True,
+                    font_style="Title",
+                    role="small",
+                    halign="center",
+                    size_hint_y=None,
+                    height=dp(22),
+                )
+            )
+            empty_card.add_widget(
+                MDLabel(
+                    text="No se encontraron platos activos para esta categoría en este momento.\nPrueba seleccionando 'Todos' o consulta en caja.",
+                    markup=True,
+                    font_style="Body",
+                    role="small",
+                    halign="center",
+                    size_hint_y=None,
+                    height=dp(38),
+                )
+            )
+            self.products_container.add_widget(empty_card)
+            self._update_cart_label()
+            return
+
+        for prod in products:
+            card_h = dp(154) if prod.is_offer else dp(128)
+            card_bg = WARM_PEACH if prod.is_offer else WHITE
+            card_border = VIBRANT_ORANGE if prod.is_offer else [0.88, 0.92, 0.96, 1]
+
+            card = MDCard(
+                orientation="vertical",
+                size_hint_y=None,
+                height=card_h,
+                padding=[dp(14), dp(8), dp(14), dp(8)],
+                spacing=dp(4),
+                style="elevated",
+                md_bg_color=card_bg,
+                radius=[dp(12), dp(12), dp(12), dp(12)],
+                line_color=card_border,
+                elevation=2 if prod.is_offer else 1,
             )
 
-            # Row 1: Title and Price (Clean contrast)
-            top_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22))
+            # Row 1: Title and Price (Symmetrical and high contrast)
+            top_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(24), spacing=dp(4))
+
+            # Small offer icon indicating discount on the product card
+            if prod.is_offer:
+                top_line.add_widget(
+                    MDButtonIcon(
+                        icon="sale",
+                        theme_icon_color="Custom",
+                        icon_color=VIBRANT_ORANGE,
+                        size_hint=(None, None),
+                        size=(dp(18), dp(18)),
+                    )
+                )
+
             top_line.add_widget(
                 MDLabel(
                     text=f"[b][color=#0A3871]{prod.name}[/color][/b]",
                     markup=True,
                     font_style="Title",
                     role="small",
+                    shorten=True,
+                    shorten_from="right",
                 )
             )
+
+            if prod.is_offer and prod.original_price:
+                price_markup = (
+                    f"[s][color=#94A3B8]{format_currency(prod.original_price)}[/color][/s]  "
+                    f"[b][color=#DC2626]{format_currency(prod.price)}[/color][/b]"
+                )
+            else:
+                price_markup = f"[b][color=#0288D1]{format_currency(prod.price)}[/color][/b]"
+
             top_line.add_widget(
                 MDLabel(
-                    text=f"[b][color=#0288D1]{format_currency(prod.price)}[/color][/b]",
+                    text=price_markup,
                     markup=True,
                     halign="right",
                     font_style="Title",
                     role="small",
+                    size_hint_x=None,
+                    width=dp(130),
                 )
             )
+            card.add_widget(top_line)
 
-            # Row 2: Badges (Category & Stock)
+            # Row 1.5: Vibrant Offer Badge (if product is discounted/near-expiry)
+            if prod.is_offer:
+                card.add_widget(create_offer_badge(prod.offer_label or "Precio Rebajado"))
+
+            # Row 2: Category and Stock Badges
             badge_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
             badge_line.add_widget(
                 MDLabel(
@@ -208,6 +334,7 @@ class CatalogScreen(MDScreen):
                     role="small",
                 )
             )
+            card.add_widget(badge_line)
 
             # Row 3: Ingredients (Shortened cleanly with ellipsis)
             display_ingredients = prod.ingredients or prod.description or "Plato del día"
@@ -221,23 +348,22 @@ class CatalogScreen(MDScreen):
                 shorten=True,
                 shorten_from="right",
             )
+            card.add_widget(ing_label)
 
-            # Row 4: Action Button
-            bottom_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(28))
+            # Row 4: Action Button with High Contrast
+            bottom_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(30))
             bottom_line.add_widget(MDBoxLayout())  # spacer
-            add_btn = MDButton(
-                MDButtonText(text="+ Agregar"),
-                style="tonal",
-                size_hint_y=None,
+            add_btn = create_button(
+                text="Agregar",
+                icon="plus",
+                style="offer" if prod.is_offer else "tonal",
+                size_hint=(None, None),
                 height=dp(28),
                 on_release=lambda x, p=prod.id_producto: self._on_add_product(p),
             )
             bottom_line.add_widget(add_btn)
-
-            card.add_widget(top_line)
-            card.add_widget(badge_line)
-            card.add_widget(ing_label)
             card.add_widget(bottom_line)
+
             self.products_container.add_widget(card)
 
         self._update_cart_label()
@@ -245,19 +371,20 @@ class CatalogScreen(MDScreen):
     def _on_select_category(self, category: str):
         self.selected_category = category
         self.status_label.text = f"Filtrando: {category}"
+        self._rebuild_category_tabs()
         self.refresh_catalog()
 
     def _on_add_product(self, product_id: str):
         try:
             self.order_service.add_to_cart(product_id, 1)
-            self.status_label.text = "Plato agregado al carrito."
+            self.status_label.text = "[color=#10B981]Plato agregado al carrito.[/color]"
             self._update_cart_label()
         except ValueError as e:
-            self.status_label.text = f"Error: {str(e)}"
+            self.status_label.text = f"[color=#EF4444]Error: {str(e)}[/color]"
 
     def _on_clear_cart(self):
         self.order_service.clear_cart()
-        self.status_label.text = "Carrito vaciado."
+        self.status_label.text = "[color=#64748B]Carrito vaciado.[/color]"
         self._update_cart_label()
 
     def _update_cart_label(self):
@@ -273,7 +400,7 @@ class CatalogScreen(MDScreen):
         """Display action confirmation dialog."""
         items = self.order_service.get_cart_items()
         if not items:
-            self.status_label.text = "El carrito está vacío. Agrega platos antes de reservar."
+            self.status_label.text = "[color=#EF4444]El carrito está vacío. Agrega platos antes de reservar.[/color]"
             return
 
         total = self.order_service.get_cart_total()
@@ -284,12 +411,14 @@ class CatalogScreen(MDScreen):
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(135),
-            padding=[dp(12), dp(10), dp(12), dp(10)],
+            height=dp(140),
+            padding=[dp(14), dp(12), dp(14), dp(12)],
             spacing=dp(6),
             style="elevated",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(14), dp(14), dp(14), dp(14)],
+            line_color=[0.04, 0.22, 0.44, 0.4],
+            elevation=3,
         )
         modal_title = MDLabel(
             text="[color=#0A3871][b]Confirmar Reserva de Comanda[/b][/color]",
@@ -306,16 +435,21 @@ class CatalogScreen(MDScreen):
             font_style="Body",
             role="small",
         )
-        modal_btns = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(34))
+        modal_btns = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(36))
 
-        cancel_btn = MDButton(
-            MDButtonText(text="Cancelar"),
+        cancel_btn = create_button(
+            text="Cancelar",
             style="tonal",
+            size_hint=(0.5, None),
+            height=dp(34),
             on_release=lambda x: self._hide_modal(),
         )
-        confirm_btn = MDButton(
-            MDButtonText(text="Sí, Confirmar"),
+        confirm_btn = create_button(
+            text="Confirmar",
+            icon="check",
             style="filled",
+            size_hint=(0.5, None),
+            height=dp(34),
             on_release=lambda x: self._execute_reservation(),
         )
         modal_btns.add_widget(cancel_btn)
@@ -336,7 +470,7 @@ class CatalogScreen(MDScreen):
         self._hide_modal()
         try:
             order = self.order_service.checkout()
-            self.status_label.text = f"¡Éxito! Comanda #{order.comanda_number} reservada."
+            self.status_label.text = f"[color=#10B981]¡Éxito! Comanda #{order.comanda_number} reservada.[/color]"
             self.refresh_catalog()
         except ValueError as e:
-            self.status_label.text = f"Error: {str(e)}"
+            self.status_label.text = f"[color=#EF4444]Error: {str(e)}[/color]"

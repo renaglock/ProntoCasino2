@@ -72,3 +72,17 @@ class AuthService:
             new_balance = user.balance + amount
             self.user_repo.update_balance(user.id_usuario, new_balance)
             user.balance = new_balance
+
+    def refund_user_balance(self, user_id: Optional[str], amount: int) -> bool:
+        """Atomically refund balance to any specific user ID in the database."""
+        if not user_id or amount <= 0:
+            return False
+        user = self.user_repo.get_by_id(user_id)
+        if not user or user.role != UserRole.CLIENT:
+            return False
+        new_balance = user.balance + amount
+        success = self.user_repo.update_balance(user_id, new_balance)
+        if success and self._current_user.id_usuario == user_id:
+            self._current_user.balance = new_balance
+        return success
+
