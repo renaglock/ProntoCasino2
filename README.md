@@ -35,11 +35,22 @@ Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápi
    - Escáner y decodificador de códigos QR con soporte de cámara web física (OpenCV) y simulación instantánea.
    - Historial de turno para auditoría de comandas entregadas, rechazadas y canceladas.
 
-6. **Panel de Administración y Gestión de Ofertas**:
-   - CRUD completo de productos con confirmación de seguridad para evitar eliminaciones accidentales.
+6. **Panel de Administración y Gestión de Catálogo**:
+   - Interfaz limpia y profesional: Pestaña **"Platos"** sin tecnicismos ni jerga de desarrollo (`(CRUD)` eliminado).
+   - Gestión integral de productos con confirmación de seguridad para evitar eliminaciones accidentales.
    - **Selector guiado de categorías (`select`)** con las 7 categorías oficiales del casino universitario.
    - **Gestión integral de ofertas y promociones**: activación de descuentos especiales con motivos personalizados (*Promo 2x1, Menú del día, 30% OFF, Por vencer*) destacados en verde claro.
-   - Métricas contables en tiempo real: total recaudado, volumen de ventas y balance de comandas.
+
+7. **Herramientas Gráficas de Contabilidad y Finanzas**:
+   - **Tarjetas KPI Ejecutivas**: Recaudación Neta Total en CLP, Ticket Promedio por Pedido, Tasa de Despacho Efectivo (%) y conteo de productos entregados.
+   - **Gráfico Proporcional de Ventas por Categoría**: Gráfico de barras horizontales nativo en KivyMD con recaudación y porcentaje relativo de cada categoría del menú.
+   - **Balance Operacional Segmentado**: Barra multi-segmento continua con estados de comandas: Entregadas (verde), En Cocina (ámbar) y Canceladas (rojo), junto a leyenda cuantitativa.
+   - **Ranking de Platos Más Vendidos (Top Platos)**: Clasificación de productos de mayor consumo con barras relativas de volumen.
+
+8. **Historial de Pedidos y Auditoría Contable**:
+   - **Buscador reactivo en tiempo real**: Filtro instantáneo por número de comanda, cliente o plato, manteniendo el foco del teclado y sin parpadeos.
+   - **Chips de filtrado rápido**: Botones segmentados (`Todos`, `Entregados`, `En Cocina`, `Cancelados`).
+   - **Modal de Auditoría de Comanda**: Desglose contable detallado con ID de transacción, hora, cliente, rol, lista de platos con subtotales, total de liquidación y botón directo **"Cobrar en Caja"** para pedidos activos.
 
 ---
 
@@ -49,7 +60,7 @@ Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápi
 | :--- | :--- | :--- | :--- |
 | **Estudiante** | `renato@uct.cl` | `Renato2026!` | Catálogo, pedidos, comanda QR y cancelación |
 | **Cajero** | `cristian@uct.cl` | `Cristian2026!` | Cola de cocina, confirmación, cobro directo y escáner QR |
-| **Administrador** | `admin@uct.cl` | `Admin2026!` | Gestión CRUD, selector de categorías, ofertas y métricas |
+| **Administrador** | `admin@uct.cl` | `Admin2026!` | Gestión de platos, ofertas, gráficos contables y auditoría de comandas |
 | **Invitado** | `invitado@uct.cl` | `Invitado2026!` | Compra directa sin registro previo |
 
 ---
@@ -101,13 +112,13 @@ python main.py
 │   │   └── user.py                # Modelo de usuarios y roles
 │   ├── repositories/
 │   │   ├── database.py            # SQLite WAL Manager y seeding inicial
-│   │   ├── order_repository.py    # Persistencia de comandas
+│   │   ├── order_repository.py    # Persistencia y semillas de comandas
 │   │   ├── product_repository.py  # Persistencia y catálogo de platos
 │   │   └── user_repository.py     # Repositorio seguro de credenciales
 │   ├── services/
 │   │   ├── auth_service.py        # Lógica de autenticación y sesiones
 │   │   ├── cashier_service.py     # Gestión de cocina, cobro y escaneo QR
-│   │   ├── order_service.py       # Carrito, checkout y cancelación
+│   │   ├── order_service.py       # Carrito, checkout, secuenciador y reportes contables
 │   │   └── security.py            # Criptografía PBKDF2-HMAC-SHA256
 │   ├── utils/
 │   │   ├── formatters.py          # Formateo monetario en CLP
@@ -117,13 +128,14 @@ python main.py
 │       ├── components/
 │       │   └── ui_elements.py     # Botones, insignias y paleta de colores UCT
 │       └── screens/
-│           ├── admin_screen.py    # Panel de administración CRUD y selector de categorías
+│           ├── admin_screen.py    # Panel de administración, gráficos contables y auditoría
 │           ├── cashier_screen.py  # Dashboard de caja, cobro y escáner QR
 │           ├── catalog_screen.py  # Menú del día y carrito
 │           ├── login_screen.py    # Autenticación institucional y teclado interactivo
 │           └── reservations_screen.py # Reservas, detalle y QR de comanda
 └── docs/                          # Documentación técnica por funcionalidad
     ├── requerimientos.md          # Especificación formal del sistema
+    ├── accounting_charts_and_order_history/ # Gráficos de contabilidad y auditoría
     ├── cashier_charge_markup_and_admin_category_selector/
     ├── crud_and_user_roles/
     ├── login_keyboard_ux_and_green_offers/

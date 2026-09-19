@@ -23,7 +23,10 @@ class OrderService:
         self.order_repo = order_repo
         self.auth_service = auth_service
         self._cart: Dict[str, int] = {}  # product_id -> quantity
-        self._next_comanda_number: int = 101
+        existing_orders = self.order_repo.get_all()
+        self._next_comanda_number: int = (
+            max([o.comanda_number for o in existing_orders], default=100) + 1
+        )
 
     def add_to_cart(self, product_id: str, quantity: int = 1) -> None:
         """Add product quantity to the active cart with inventory check."""
@@ -155,17 +158,82 @@ class OrderService:
 
     def get_sales_metrics(self) -> Dict[str, Any]:
         """Aggregate financial and operational sales metrics for administration."""
+        return self.get_accounting_report()
+
+    def get_accounting_report(self) -> Dict[str, Any]:
+        """Generate comprehensive financial, category distribution, and top dishes report for administration."""
         orders = self.order_repo.get_all()
         delivered = [o for o in orders if o.status == OrderStatus.DELIVERED]
         pending = [o for o in orders if o.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)]
         cancelled = [o for o in orders if o.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED)]
 
         total_collected = sum(o.total for o in delivered)
+        delivered_count = len(delivered)
+        total_orders = len(orders)
+        average_ticket = (total_collected // delivered_count) if delivered_count > 0 else 0
+        delivery_rate = round((delivered_count / total_orders * 100), 1) if total_orders > 0 else 0.0
+
+        # Sales and volume by category (based on delivered orders)
+        category_data: Dict[str, Dict[str, Any]] = {}
+        # Product ranking
+        product_sales: Dict[str, Dict[str, Any]] = {}
+        total_items_sold = 0
+
+        for order in delivered:
+            for item in order.items:
+                total_items_sold += item.quantity
+                prod = self.product_repo.get_by_id(item.product_id)
+                cat = prod.category if prod else "Menú Normal"
+
+                # Category aggregation
+                if cat not in category_data:
+                    category_data[cat] = {"revenue": 0, "quantity": 0, "category": cat}
+                category_data[cat]["revenue"] += item.subtotal
+                category_data[cat]["quantity"] += item.quantity
+
+                # Product aggregation
+                p_key = item.name
+                if p_key not in product_sales:
+                    product_sales[p_key] = {
+                        "name": item.name,
+                        "product_id": item.product_id,
+                        "category": cat,
+                        "quantity": 0,
+                        "revenue": 0,
+                    }
+                product_sales[p_key]["quantity"] += item.quantity
+                product_sales[p_key]["revenue"] += item.subtotal
+
+        # Compute percentages for categories
+        category_list = []
+        for cat, val in category_data.items():
+            pct = round((val["revenue"] / total_collected * 100), 1) if total_collected > 0 else 0.0
+            category_list.append({
+                "category": cat,
+                "revenue": val["revenue"],
+                "quantity": val["quantity"],
+                "percentage": pct,
+            })
+        category_list.sort(key=lambda x: x["revenue"], reverse=True)
+
+        # Top selling dishes
+        top_dishes = list(product_sales.values())
+        top_dishes.sort(key=lambda x: (x["quantity"], x["revenue"]), reverse=True)
+        max_qty = top_dishes[0]["quantity"] if top_dishes else 1
+        for d in top_dishes:
+            d["relative_pct"] = round((d["quantity"] / max_qty * 100), 1)
+
         return {
-            "total_orders": len(orders),
-            "delivered_count": len(delivered),
+            "total_orders": total_orders,
+            "delivered_count": delivered_count,
             "pending_count": len(pending),
             "cancelled_count": len(cancelled),
             "total_collected": total_collected,
+            "average_ticket": average_ticket,
+            "delivery_rate": delivery_rate,
+            "total_items_sold": total_items_sold,
+            "category_sales": category_list,
+            "top_dishes": top_dishes[:5],
         }
+
 
