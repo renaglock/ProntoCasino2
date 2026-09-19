@@ -21,9 +21,10 @@ class CashierService:
         self.auth_service = auth_service
 
     def get_pending_orders(self) -> List[Order]:
-        """Fetch all orders awaiting cashier confirmation sorted by comanda number."""
+        """Fetch all active orders in kitchen queue (pending, confirmed, or ready) sorted by comanda number."""
+        active_statuses = (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)
         return sorted(
-            self.order_repo.get_by_status(OrderStatus.PENDING),
+            [o for o in self.order_repo.get_all() if o.status in active_statuses],
             key=lambda o: o.comanda_number,
         )
 

@@ -16,8 +16,8 @@ from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     create_button,
     create_offer_badge,
-    VIBRANT_ORANGE,
-    WARM_PEACH,
+    LIGHT_GREEN,
+    SOFT_MINT,
     UCT_NAVY,
     WHITE,
 )
@@ -115,6 +115,7 @@ class CatalogScreen(MDScreen):
         self.cart_label = MDLabel(
             text="Carrito vacío",
             bold=True,
+            markup=True,
             size_hint_y=None,
             height=dp(20),
             font_style="Title",
@@ -122,8 +123,9 @@ class CatalogScreen(MDScreen):
         )
         self.status_label = MDLabel(
             text="",
+            markup=True,
             size_hint_y=None,
-            height=dp(16),
+            height=dp(20),
             font_style="Label",
             role="small",
         )
@@ -248,8 +250,8 @@ class CatalogScreen(MDScreen):
 
         for prod in products:
             card_h = dp(154) if prod.is_offer else dp(128)
-            card_bg = WARM_PEACH if prod.is_offer else WHITE
-            card_border = VIBRANT_ORANGE if prod.is_offer else [0.88, 0.92, 0.96, 1]
+            card_bg = SOFT_MINT if prod.is_offer else WHITE
+            card_border = LIGHT_GREEN if prod.is_offer else [0.88, 0.92, 0.96, 1]
 
             card = MDCard(
                 orientation="vertical",
@@ -273,7 +275,7 @@ class CatalogScreen(MDScreen):
                     MDButtonIcon(
                         icon="sale",
                         theme_icon_color="Custom",
-                        icon_color=VIBRANT_ORANGE,
+                        icon_color=LIGHT_GREEN,
                         size_hint=(None, None),
                         size=(dp(18), dp(18)),
                     )

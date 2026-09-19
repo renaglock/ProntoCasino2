@@ -22,7 +22,8 @@ from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     create_button,
     create_offer_badge,
-    VIBRANT_ORANGE,
+    LIGHT_GREEN,
+    SOFT_MINT,
     UCT_ICE_BLUE,
     UCT_NAVY,
     WHITE,
@@ -51,6 +52,7 @@ class AdminScreen(MDScreen):
         self.root_layout = None
         self.status_label = None
         self.confirm_modal = None
+        self.category_modal = None
 
         # Form widgets
         self.input_id = None
@@ -472,7 +474,7 @@ class AdminScreen(MDScreen):
             ingredients="",
             is_offer=False,
             offer_price="2400",
-            offer_label="Por vencer hoy - 50% OFF",
+            offer_label="30% OFF - Oferta Especial",
             id_editable=True,
         )
 
@@ -492,7 +494,7 @@ class AdminScreen(MDScreen):
             ingredients=prod.ingredients,
             is_offer=prod.is_offer,
             offer_price=str(off_price),
-            offer_label=prod.offer_label or "Por vencer hoy - 50% OFF",
+            offer_label=prod.offer_label or "Oferta Especial / Descuento",
             id_editable=False,
         )
 
@@ -589,16 +591,33 @@ class AdminScreen(MDScreen):
         self.input_name.text = name
         fields_box.add_widget(self.input_name)
 
-        # 3. Category Input
-        self.input_cat = MDTextField(
-            MDTextFieldLeadingIcon(icon="tag-outline"),
-            MDTextFieldHintText(text="Categoría (Menú Normal, Comidas Rápidas, Bebidas...)"),
-            mode="outlined",
+        # 3. Category Selector (Select de categorías disponibles según el menú)
+        cat_box = MDBoxLayout(
+            orientation="horizontal",
+            spacing=dp(8),
             size_hint_y=None,
             height=dp(52),
         )
-        self.input_cat.text = cat
-        fields_box.add_widget(self.input_cat)
+        self.input_cat = MDTextField(
+            MDTextFieldLeadingIcon(icon="tag-outline"),
+            MDTextFieldHintText(text="Categoría del Menú"),
+            mode="outlined",
+            size_hint=(0.68, None),
+            height=dp(52),
+            readonly=True,
+        )
+        self.input_cat.text = cat or "Menú Normal"
+        cat_btn = create_button(
+            text="Elegir",
+            icon="menu-down",
+            style="tonal",
+            size_hint=(0.32, None),
+            height=dp(48),
+            on_release=lambda x: self._show_category_picker(),
+        )
+        cat_box.add_widget(self.input_cat)
+        cat_box.add_widget(cat_btn)
+        fields_box.add_widget(cat_box)
 
         # 4. Price & Stock Row
         row_ps = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(52))
@@ -633,7 +652,7 @@ class AdminScreen(MDScreen):
         self.input_ingredients.text = ingredients
         fields_box.add_widget(self.input_ingredients)
 
-        # 6. DEDICATED NEAR-EXPIRY / DISCOUNT SECTION (ZERO CRASH, DIRECT TEXT REFERENCE)
+        # 6. DEDICATED OFFER / SPECIAL DISCOUNT SECTION
         self._is_offer_active = is_offer
         self.offer_card = MDCard(
             orientation="vertical",
@@ -642,14 +661,14 @@ class AdminScreen(MDScreen):
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(8),
             style="elevated",
-            md_bg_color=[0.99, 0.96, 0.91, 1.0],  # Cálido ámbar
+            md_bg_color=SOFT_MINT,  # Fondo menta / verde claro
             radius=[dp(14), dp(14), dp(14), dp(14)],
-            line_color=[0.85, 0.60, 0.20, 1.0],
+            line_color=[0.40, 0.80, 0.50, 1.0],
             elevation=1,
         )
 
         self.toggle_offer_text = MDButtonText(
-            text="Oferta / Por Vencer: ACTIVA" if self._is_offer_active else "Activar Precio Rebajado por Vencer",
+            text="Oferta / Descuento: ACTIVA" if self._is_offer_active else "Activar Oferta / Descuento Especial",
             theme_text_color="Custom",
             text_color=WHITE if self._is_offer_active else UCT_NAVY,
         )
@@ -663,7 +682,7 @@ class AdminScreen(MDScreen):
             self.toggle_offer_text,
             style="filled" if self._is_offer_active else "tonal",
             theme_bg_color="Custom",
-            md_bg_color=VIBRANT_ORANGE if self._is_offer_active else UCT_ICE_BLUE,
+            md_bg_color=LIGHT_GREEN if self._is_offer_active else UCT_ICE_BLUE,
             size_hint=(1, None),
             height=dp(38),
             on_release=lambda x: self._toggle_offer_state(),
@@ -689,8 +708,8 @@ class AdminScreen(MDScreen):
         self.input_offer_price.text = offer_price
 
         self.input_offer_label = MDTextField(
-            MDTextFieldLeadingIcon(icon="clock-alert-outline"),
-            MDTextFieldHintText(text="Motivo (ej: Por vencer hoy - 50% OFF)"),
+            MDTextFieldLeadingIcon(icon="tag-outline"),
+            MDTextFieldHintText(text="Motivo (ej: Promo 2x1, Menú del día, 30% OFF, Por vencer)"),
             mode="outlined",
             size_hint_y=None,
             height=dp(48),
@@ -730,8 +749,8 @@ class AdminScreen(MDScreen):
         self._is_offer_active = not self._is_offer_active
         if self._is_offer_active:
             self.toggle_offer_btn.style = "filled"
-            self.toggle_offer_btn.md_bg_color = VIBRANT_ORANGE
-            self.toggle_offer_text.text = "Oferta / Por Vencer: ACTIVA"
+            self.toggle_offer_btn.md_bg_color = LIGHT_GREEN
+            self.toggle_offer_text.text = "Oferta / Descuento: ACTIVA"
             self.toggle_offer_text.text_color = WHITE
             self.toggle_offer_icon.icon = "sale"
             self.toggle_offer_icon.icon_color = WHITE
@@ -742,7 +761,7 @@ class AdminScreen(MDScreen):
         else:
             self.toggle_offer_btn.style = "tonal"
             self.toggle_offer_btn.md_bg_color = UCT_ICE_BLUE
-            self.toggle_offer_text.text = "Activar Precio Rebajado por Vencer"
+            self.toggle_offer_text.text = "Activar Oferta / Descuento Especial"
             self.toggle_offer_text.text_color = UCT_NAVY
             self.toggle_offer_icon.icon = "tag-outline"
             self.toggle_offer_icon.icon_color = UCT_NAVY
@@ -781,7 +800,7 @@ class AdminScreen(MDScreen):
                     return
                 original_price = price
                 final_price = discounted
-                offer_label = self.input_offer_label.text.strip() or "Por vencer hoy"
+                offer_label = self.input_offer_label.text.strip() or "Oferta Especial"
             except ValueError:
                 self.form_error_lbl.text = "[color=#EF4444]Precio de oferta inválido.[/color]"
                 return
@@ -804,6 +823,84 @@ class AdminScreen(MDScreen):
             self.product_repo.create(prod)
 
         self._show_list_view()
+
+    # --- Category Selector Modal (Available Menu Categories) ---
+
+    def _show_category_picker(self):
+        """Display interactive select modal with available menu categories."""
+        self._hide_modals()
+
+        self.category_modal = MDCard(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(380),
+            padding=[dp(16), dp(12), dp(16), dp(12)],
+            spacing=dp(6),
+            style="elevated",
+            md_bg_color=[1.0, 1.0, 1.0, 1.0],
+            radius=[dp(16), dp(16), dp(16), dp(16)],
+            line_color=[0.04, 0.22, 0.44, 0.4],
+            elevation=4,
+        )
+        c_title = MDLabel(
+            text="[b][color=#0A3871]Seleccionar Categoría del Menú[/color][/b]",
+            markup=True,
+            font_style="Title",
+            role="small",
+            size_hint_y=None,
+            height=dp(26),
+        )
+        self.category_modal.add_widget(c_title)
+
+        categories = [
+            ("Menú Normal", "silverware"),
+            ("Menú Ejecutivo", "star"),
+            ("Menú Hipocalórico", "leaf"),
+            ("Menú Vegetariano", "sprout"),
+            ("Comidas Rápidas", "hamburger"),
+            ("Bebidas", "cup"),
+            ("Postres y Snacks", "cake-variant"),
+        ]
+
+        scroll_cats = ScrollView(size_hint=(1, 1))
+        cats_list = MDBoxLayout(
+            orientation="vertical",
+            spacing=dp(6),
+            size_hint_y=None,
+        )
+        cats_list.bind(minimum_height=cats_list.setter("height"))
+
+        current_val = self.input_cat.text.strip() if self.input_cat else ""
+        for cat_name, cat_icon in categories:
+            is_selected = (current_val == cat_name)
+            btn = create_button(
+                text=cat_name,
+                icon=cat_icon,
+                style="filled" if is_selected else "tonal",
+                size_hint=(1, None),
+                height=dp(36),
+                on_release=lambda x, c=cat_name: self._select_category(c),
+            )
+            cats_list.add_widget(btn)
+
+        scroll_cats.add_widget(cats_list)
+        self.category_modal.add_widget(scroll_cats)
+
+        cancel_btn = create_button(
+            text="Cerrar",
+            style="outlined",
+            size_hint=(1, None),
+            height=dp(34),
+            on_release=lambda x: self._hide_modals(),
+        )
+        self.category_modal.add_widget(cancel_btn)
+
+        self.root_layout.add_widget(self.category_modal, index=1)
+
+    def _select_category(self, cat_name: str):
+        if self.input_cat:
+            self.input_cat.text = cat_name
+        self._hide_modals()
 
     # --- Deletion modal confirmation ---
 
@@ -867,6 +964,12 @@ class AdminScreen(MDScreen):
         self._show_list_view()
 
     def _hide_confirm_modal(self):
+        self._hide_modals()
+
+    def _hide_modals(self):
+        if hasattr(self, "category_modal") and self.category_modal and self.category_modal in self.root_layout.children:
+            self.root_layout.remove_widget(self.category_modal)
+            self.category_modal = None
         if self.confirm_modal and self.confirm_modal in self.root_layout.children:
             self.root_layout.remove_widget(self.confirm_modal)
             self.confirm_modal = None

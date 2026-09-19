@@ -144,6 +144,15 @@ class OrderService:
         # Update order status
         return self.order_repo.update_status(order_id, OrderStatus.CANCELLED)
 
+    def mark_delivered(self, order_id: str) -> bool:
+        """Mark an active comanda as paid and delivered in cashier."""
+        order = self.order_repo.get_by_id(order_id)
+        if not order:
+            return False
+        if order.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.DELIVERED):
+            return False
+        return self.order_repo.update_status(order_id, OrderStatus.DELIVERED)
+
     def get_sales_metrics(self) -> Dict[str, Any]:
         """Aggregate financial and operational sales metrics for administration."""
         orders = self.order_repo.get_all()

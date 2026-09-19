@@ -1,41 +1,45 @@
 # Pronto Casino UCT 🍽️📱
 
-Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápidos en el casino de la **Universidad Católica de Temuco (UCT)**. Diseñada bajo la resolución de smartphone (380x720 px), con interfaz Material Design 3 (KivyMD 2.0), persistencia SQLite WAL de alto rendimiento y seguridad criptográfica OWASP.
+Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápidos en el casino de la **Universidad Católica de Temuco (UCT)**. Diseñada bajo resolución de smartphone (380x720 px), con interfaz Material Design 3 (KivyMD 2.0), persistencia SQLite WAL de alto rendimiento y seguridad criptográfica de grado bancario.
 
 ---
 
 ## 🚀 Características Principales
 
-1. **Resolución y Diseño Móvil (Smartphone UX)**:
-   - Formato móvil optimizado (`Window.size = (380, 720)`).
-   - Estilizado institucional con colores de la UCT (Azul Marino `#0A3871`, Celeste `#0288D1` y fondos limpios).
-   - Tarjetas responsivas anti-saturación de texto para visualización ergonómica en pantallas compactas.
+1. **Resolución y Ergonomía Móvil (Smartphone UX)**:
+   - Formato móvil vertical optimizado (`Window.size = (380, 720)`).
+   - Paleta institucional UCT: Azul Marino (`#0A3871`), Celeste (`#0288D1`), Verde Claro para promociones (`#2EC76E`) y fondos limpios.
+   - Tarjetas responsivas con truncamiento inteligente anti-saturación de texto para pantallas compactas.
 
-2. **Catálogo y Reservas sin Filas**:
-   - Menú del día (Menú Normal, Ejecutivo, Hipocalórico, Vegetariano, Comidas Rápidas y Bebidas).
-   - Control en tiempo real del stock disponible en cocina.
-   - Carrito de compras con cálculo automático de totales.
+2. **Acceso Seguro y Accesibilidad**:
+   - Navegación completa por teclado físico (`Tab`, `Shift+Tab`, `Enter`, flechas de dirección).
+   - Campo de contraseña con botón interactivo de revelación (`eye` / `eye-off`).
+   - Hashing con **PBKDF2-HMAC-SHA256 (600.000 iteraciones)** y sal criptográfica de 32 bytes por usuario.
+   - Protección contra *timing attacks* mediante `secrets.compare_digest`.
 
-3. **Comandas Numeradas y Código QR de Retiro**:
+3. **Catálogo y Reservas sin Filas**:
+   - Menú del día organizado por categorías oficiales (*Menú Normal*, *Menú Ejecutivo*, *Menú Hipocalórico*, *Menú Vegetariano*, *Comidas Rápidas*, *Bebidas* y *Postres y Snacks*).
+   - Control de inventario y stock en tiempo real.
+   - Carrito dinámico con resumen de ítems y cálculo automático de totales.
+
+4. **Comandas Numeradas y Código QR de Retiro**:
    - Generación de comandas secuenciales (`#101`, `#102`, etc.).
-   - Estado explícito **"Pendiente por pagar"** en color ámbar (`#D97706`).
-   - Modal interactivo con desglose plato por plato, total a pagar en casino y **código QR visual generado en memoria** (OpenGL Texture).
-   - Cancelación de comanda por el cliente con restitución atómica de stock a cocina.
+   - Estado explícito **"Pendiente por pagar"** en color ámbar institucional.
+   - Modal interactivo con desglose de platos, total a pagar en casino y **código QR visual generado en memoria** (OpenGL Texture).
+   - Cancelación de comanda por el estudiante con devolución atómica de stock e importe.
 
-4. **Módulo de Caja y Cocina (Sabor Único)**:
-   - Cola de comandas en preparación.
-   - Escáner/lector de códigos QR para validar pedidos.
-   - Previsualización del cliente, platos y total a cobrar.
-   - Flujo de cobro y entrega en meson (**"Cobrar y Entregar"**).
+5. **Módulo de Caja y Cocina Omnipresente**:
+   - Cola activa de comandas para preparación y entrega (`PENDING`, `CONFIRMED`, `READY`).
+   - Botón directo de 1 toque **"Cobrar y Entregar"** para liquidar comandas sin forzar escaneo físico.
+   - Botón **"Cobrar en Caja"** accesible para cajeros y administradores directamente desde el detalle de la comanda en **Reservas**.
+   - Escáner y decodificador de códigos QR con soporte de cámara web física (OpenCV) y simulación instantánea.
+   - Historial de turno para auditoría de comandas entregadas, rechazadas y canceladas.
 
-5. **Panel de Administración General**:
-   - CRUD completo de productos (Crear, Ver, Editar, Eliminar platos y precios).
-   - Confirmación de acciones críticas para evitar borrados accidentales.
-
-6. **Seguridad y Persistencia de Nivel Bancario**:
-   - Base de datos local SQLite configurada en modo **WAL (Write-Ahead Logging)** para máxima concurrencia y fluidez a 60 FPS.
-   - Hashing de contraseñas con **PBKDF2-HMAC-SHA256 (600.000 iteraciones)** y sal criptográfica de 32 bytes por usuario.
-   - Validación segura contra ataques de temporización (*timing attacks*) mediante `secrets.compare_digest`.
+6. **Panel de Administración y Gestión de Ofertas**:
+   - CRUD completo de productos con confirmación de seguridad para evitar eliminaciones accidentales.
+   - **Selector guiado de categorías (`select`)** con las 7 categorías oficiales del casino universitario.
+   - **Gestión integral de ofertas y promociones**: activación de descuentos especiales con motivos personalizados (*Promo 2x1, Menú del día, 30% OFF, Por vencer*) destacados en verde claro.
+   - Métricas contables en tiempo real: total recaudado, volumen de ventas y balance de comandas.
 
 ---
 
@@ -44,8 +48,8 @@ Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápi
 | Rol | Correo Electrónico | Contraseña | Capacidades |
 | :--- | :--- | :--- | :--- |
 | **Estudiante** | `renato@uct.cl` | `Renato2026!` | Catálogo, pedidos, comanda QR y cancelación |
-| **Cajero** | `cristian@uct.cl` | `Cristian2026!` | Cola de cocina, confirmación y escáner/cobro QR |
-| **Administrador** | `admin@uct.cl` | `Admin2026!` | Gestión CRUD de platos, inventario y precios |
+| **Cajero** | `cristian@uct.cl` | `Cristian2026!` | Cola de cocina, confirmación, cobro directo y escáner QR |
+| **Administrador** | `admin@uct.cl` | `Admin2026!` | Gestión CRUD, selector de categorías, ofertas y métricas |
 | **Invitado** | `invitado@uct.cl` | `Invitado2026!` | Compra directa sin registro previo |
 
 ---
@@ -53,7 +57,7 @@ Plataforma móvil oficial para la gestión de reservas, comandas y retiros rápi
 ## 📦 Instalación y Ejecución Local
 
 ### Prerrequisitos
-- Python 3.10 o superior (compatible con Python 3.13)
+- Python 3.10 o superior (compatible con Python 3.11, 3.12 y 3.13)
 - Sistema operativo Linux / macOS / Windows
 
 ### 1. Clonar el repositorio
@@ -110,15 +114,19 @@ python main.py
 │   │   └── qr_generator.py        # Generación de códigos QR en memoria
 │   └── views/
 │       ├── styles.kv              # Hoja de estilos Kivy (CSS responsive UCT)
+│       ├── components/
+│       │   └── ui_elements.py     # Botones, insignias y paleta de colores UCT
 │       └── screens/
-│           ├── admin_screen.py    # Panel de administración CRUD
-│           ├── cashier_screen.py  # Dashboard de caja y escáner QR
+│           ├── admin_screen.py    # Panel de administración CRUD y selector de categorías
+│           ├── cashier_screen.py  # Dashboard de caja, cobro y escáner QR
 │           ├── catalog_screen.py  # Menú del día y carrito
-│           ├── login_screen.py    # Autenticación institucional UCT
+│           ├── login_screen.py    # Autenticación institucional y teclado interactivo
 │           └── reservations_screen.py # Reservas, detalle y QR de comanda
-└── docs/                          # Documentación técnica por feature
+└── docs/                          # Documentación técnica por funcionalidad
     ├── requerimientos.md          # Especificación formal del sistema
+    ├── cashier_charge_markup_and_admin_category_selector/
     ├── crud_and_user_roles/
+    ├── login_keyboard_ux_and_green_offers/
     ├── mobile_ui_and_auth/
     ├── mvp_ui_screens/
     ├── project_structure/

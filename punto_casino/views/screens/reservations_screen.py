@@ -9,6 +9,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 
 from punto_casino.models.order import Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
+from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.formatters import format_currency
@@ -204,10 +205,15 @@ class ReservationsScreen(MDScreen):
         status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
         status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
 
+        current_user = self.auth_service.current_user
+        is_cashier_or_admin = current_user and current_user.role in (UserRole.CASHIER, UserRole.ADMIN)
+        is_order_active = order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)
+        modal_h = dp(535) if (is_cashier_or_admin and is_order_active) else dp(490)
+
         self.detail_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(490),
+            height=modal_h,
             padding=[dp(18), dp(14), dp(18), dp(14)],
             spacing=dp(8),
             style="elevated",
@@ -236,15 +242,20 @@ class ReservationsScreen(MDScreen):
         modal_header.add_widget(m_status)
         self.detail_modal.add_widget(modal_header)
 
-        # 2. Items list breakdown
-        items_box = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_y=None, height=dp(50))
+        # 2. Items list breakdown (Anti-overlapping with single-line truncation)
+        items_count = max(len(order.items), 1)
+        items_box_h = min(items_count * dp(24), dp(72))
+        items_box = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_y=None, height=items_box_h)
         for item in order.items:
-            row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22))
+            row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22), spacing=dp(4))
             row.add_widget(
                 MDLabel(
                     text=f"• {item.quantity}x {item.name}",
                     font_style="Body",
                     role="small",
+                    shorten=True,
+                    shorten_from="right",
+                    size_hint_x=0.72,
                 )
             )
             row.add_widget(
@@ -254,6 +265,7 @@ class ReservationsScreen(MDScreen):
                     font_style="Body",
                     role="small",
                     bold=True,
+                    size_hint_x=0.28,
                 )
             )
             items_box.add_widget(row)
@@ -316,6 +328,18 @@ class ReservationsScreen(MDScreen):
         )
         self.detail_modal.add_widget(instr_lbl)
 
+        # If logged-in user is Cashier or Admin, provide direct "Cobrar en Caja" action
+        if is_cashier_or_admin and is_order_active:
+            charge_btn = create_button(
+                text="Cobrar en Caja",
+                icon="cash-register",
+                style="offer",
+                size_hint=(1, None),
+                height=dp(36),
+                on_release=lambda x, o=order: self._charge_order_as_cashier(o),
+            )
+            self.detail_modal.add_widget(charge_btn)
+
         # 4. Actions: Cancel order (if eligible) & Close with high contrast
         actions_box = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(38))
 
@@ -341,6 +365,16 @@ class ReservationsScreen(MDScreen):
 
         self.detail_modal.add_widget(actions_box)
         self.root_layout.add_widget(self.detail_modal, index=1)
+
+    def _charge_order_as_cashier(self, order: Order):
+        """Allow cashier or administrator to mark comanda as paid & delivered directly from detail view."""
+        self._hide_modals()
+        success = self.order_service.mark_delivered(order.id_pedido)
+        if success:
+            self.status_label.text = f"[color=#10B981]Comanda #{order.comanda_number} cobrada (${order.total:,} CLP) y entregada con éxito.[/color]"
+        else:
+            self.status_label.text = f"[color=#EF4444]No se pudo procesar el cobro de la comanda #{order.comanda_number}.[/color]"
+        self.refresh_reservations()
 
     def _ask_cancel_confirmation(self, order: Order):
         """Show confirmation dialog before cancelling an active comanda."""

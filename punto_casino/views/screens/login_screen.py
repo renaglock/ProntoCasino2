@@ -1,9 +1,12 @@
 """Dedicated Login Screen for Pronto Casino UCT with pristine, friendly mobile UX and institutional security."""
 
+from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.metrics import dp
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
@@ -15,7 +18,7 @@ from kivymd.uix.textfield import (
 
 from punto_casino.models.user import UserRole
 from punto_casino.services.auth_service import AuthService
-from punto_casino.views.components.ui_elements import create_button
+from punto_casino.views.components.ui_elements import create_button, UCT_NAVY, SLATE_GRAY
 
 
 class LoginScreen(MDScreen):
@@ -116,28 +119,61 @@ class LoginScreen(MDScreen):
         form_card.add_widget(form_title)
         form_card.add_widget(form_sub)
 
-        # Email input field (No colliding helper text)
+        # Email input field (Clean, responsive, keyboard-friendly)
         self.email_input = MDTextField(
             MDTextFieldLeadingIcon(icon="email-outline"),
             MDTextFieldHintText(text="Correo institucional"),
             mode="outlined",
             size_hint_y=None,
             height=dp(52),
+            multiline=False,
+            write_tab=False,
         )
         self.email_input.text = "renato@uct.cl"
+        self.email_input.bind(on_text_validate=lambda x: self._focus_password())
         form_card.add_widget(self.email_input)
 
-        # Password input field (No colliding helper text)
+        # Password input container with interactive reveal/conceal toggle button
+        password_container = RelativeLayout(
+            size_hint_y=None,
+            height=dp(52),
+        )
         self.password_input = MDTextField(
             MDTextFieldLeadingIcon(icon="lock-outline"),
             MDTextFieldHintText(text="Contraseña"),
             mode="outlined",
-            size_hint_y=None,
-            height=dp(52),
+            size_hint=(1, 1),
+            multiline=False,
+            write_tab=False,
         )
         self.password_input.password = True
         self.password_input.text = "Renato2026!"
-        form_card.add_widget(self.password_input)
+        self.password_input.bind(on_text_validate=lambda x: self._on_credentials_submit())
+
+        self.password_toggle_icon = MDButtonIcon(
+            icon="eye-off",
+            theme_icon_color="Custom",
+            icon_color=SLATE_GRAY,
+            size_hint=(None, None),
+            size=(dp(22), dp(22)),
+        )
+        self.password_toggle_btn = MDButton(
+            self.password_toggle_icon,
+            style="text",
+            theme_bg_color="Custom",
+            md_bg_color=[0, 0, 0, 0],
+            size_hint=(None, None),
+            size=(dp(44), dp(44)),
+            pos_hint={"right": 0.98, "center_y": 0.5},
+            on_release=self._toggle_password_visibility,
+        )
+        password_container.add_widget(self.password_input)
+        password_container.add_widget(self.password_toggle_btn)
+        form_card.add_widget(password_container)
+
+        # Keyboard focus navigation chain
+        self.email_input.focus_next = self.password_input
+        self.password_input.focus_previous = self.email_input
 
         # Error / Status Feedback Label
         self.error_label = MDLabel(
@@ -211,6 +247,83 @@ class LoginScreen(MDScreen):
         scroll.add_widget(content_box)
         self.add_widget(scroll)
 
+    def _toggle_password_visibility(self, *args):
+        """Toggle password concealment on and off with immediate visual icon update."""
+        if not self.password_input:
+            return
+        self.password_input.password = not self.password_input.password
+        if self.password_toggle_icon:
+            if self.password_input.password:
+                self.password_toggle_icon.icon = "eye-off"
+                self.password_toggle_icon.icon_color = SLATE_GRAY
+            else:
+                self.password_toggle_icon.icon = "eye"
+                self.password_toggle_icon.icon_color = UCT_NAVY
+
+    def _focus_password(self):
+        """Move focus to password input field."""
+        if self.email_input:
+            self.email_input.focus = False
+        if self.password_input:
+            self.password_input.focus = True
+
+    def _focus_email(self):
+        """Move focus to email input field."""
+        if self.password_input:
+            self.password_input.focus = False
+        if self.email_input:
+            self.email_input.focus = True
+
+    def on_enter(self):
+        """Screen entered: bind keyboard shortcuts and autofocus email input."""
+        if self.error_label:
+            self.error_label.text = ""
+        # Auto-focus email field with a gentle tick so Kivy window state settles
+        Clock.schedule_once(lambda dt: setattr(self.email_input, "focus", True), 0.1)
+        # Bind global hardware keyboard events for Tab, Enter, and Arrow navigation
+        Window.bind(on_key_down=self._on_window_key_down)
+
+    def on_leave(self):
+        """Screen left: clean up keyboard listener."""
+        Window.unbind(on_key_down=self._on_window_key_down)
+
+    def _on_window_key_down(self, window, key, scancode, codepoint, modifiers) -> bool:
+        """Handle Tab, Shift+Tab, Enter, and Up/Down arrows seamlessly."""
+        # 1. Tab navigation (Key code 9)
+        if key == 9:
+            if self.email_input and self.email_input.focus:
+                self._focus_password()
+                return True
+            elif self.password_input and self.password_input.focus:
+                if "shift" in modifiers:
+                    self._focus_email()
+                else:
+                    self._focus_email()
+                return True
+
+        # 2. Enter / Return key (Key codes 13 and 271 for keypad)
+        elif key in (13, 271):
+            if self.email_input and self.email_input.focus:
+                self._focus_password()
+                return True
+            elif self.password_input and self.password_input.focus:
+                self._on_credentials_submit()
+                return True
+
+        # 3. Up Arrow (Key code 273)
+        elif key == 273:
+            if self.password_input and self.password_input.focus:
+                self._focus_email()
+                return True
+
+        # 4. Down Arrow (Key code 274)
+        elif key == 274:
+            if self.email_input and self.email_input.focus:
+                self._focus_password()
+                return True
+
+        return False
+
     def _on_credentials_submit(self):
         """Authenticate user strictly using the email and password inputs against the database."""
         email = self.email_input.text.strip()
@@ -238,4 +351,5 @@ class LoginScreen(MDScreen):
         user = self.auth_service.quick_login("invitado")
         if user:
             self.on_login_success(user, "catalog")
+
 

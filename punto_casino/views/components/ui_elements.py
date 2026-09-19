@@ -11,12 +11,16 @@ from kivymd.uix.label import MDLabel
 UCT_NAVY = [0.04, 0.22, 0.44, 1.0]       # #0A3871
 UCT_ICE_BLUE = [0.90, 0.94, 0.98, 1.0]   # #E5F0FA
 UCT_LIGHT_BLUE = [0.01, 0.53, 0.82, 1.0] # #0288D1
-VIBRANT_ORANGE = [0.95, 0.35, 0.08, 1.0] # #F25A14 (Vibrant fiery offer accent)
-WARM_PEACH = [1.0, 0.96, 0.92, 1.0]      # Soft background for offer cards
+LIGHT_GREEN = [0.18, 0.76, 0.42, 1.0]    # #2EC76E (Vibrant fresh light green for offers)
+SOFT_MINT = [0.94, 0.99, 0.96, 1.0]      # #F0FDF4 (Soft mint light green background for offer cards)
 CRIMSON_RED = [0.86, 0.15, 0.15, 1.0]    # #DC2626
 EMERALD_GREEN = [0.06, 0.65, 0.45, 1.0]  # #10B981
 WHITE = [1.0, 1.0, 1.0, 1.0]
 SLATE_GRAY = [0.39, 0.45, 0.55, 1.0]     # #64748B
+
+# Aliases for offer palette transitions
+VIBRANT_ORANGE = LIGHT_GREEN
+WARM_PEACH = SOFT_MINT
 
 
 def create_button(
@@ -35,7 +39,7 @@ def create_button(
         - "filled": UCT Navy background with crisp white text.
         - "tonal": Soft ice-blue background with high-contrast navy text.
         - "outlined": Bordered white button with navy text.
-        - "offer": Vibrant fiery orange background with white text.
+        - "offer": Fresh vibrant light green background with white text.
         - "danger": Crimson red background with white text.
         - "success": Emerald green background with white text.
     """
@@ -46,7 +50,7 @@ def create_button(
         fg_color = WHITE
         base_style = "filled"
     elif style == "offer":
-        bg_color = VIBRANT_ORANGE
+        bg_color = LIGHT_GREEN
         fg_color = WHITE
         base_style = "filled"
     elif style == "danger":
@@ -109,7 +113,7 @@ def create_offer_badge(offer_label: str) -> MDCard:
         spacing=dp(6),
         style="filled",
         theme_bg_color="Custom",
-        md_bg_color=VIBRANT_ORANGE,
+        md_bg_color=LIGHT_GREEN,
         radius=[dp(8), dp(8), dp(8), dp(8)],
         elevation=0,
     )
