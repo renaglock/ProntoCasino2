@@ -6,7 +6,7 @@ from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
 from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
+from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import (
     MDTextField,
@@ -76,7 +76,11 @@ class AdminScreen(MDScreen):
         self.offer_card = None
         self.offer_fields_layout = None
 
-        self.root_layout = MDBoxLayout(orientation="vertical")
+        self.root_layout = MDBoxLayout(
+            orientation="vertical",
+            theme_bg_color="Custom",
+            md_bg_color=[0.96, 0.97, 0.99, 1.0],
+        )
         self.add_widget(self.root_layout)
         self._show_list_view()
 
@@ -98,7 +102,7 @@ class AdminScreen(MDScreen):
             spacing=dp(8),
         )
 
-        # Header with Title and '+ Nuevo Plato' Button
+        # 1. Header with Title and '+ Nuevo Plato' Button
         title_row = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
@@ -124,7 +128,7 @@ class AdminScreen(MDScreen):
         title_row.add_widget(self.new_dish_btn)
         container.add_widget(title_row)
 
-        # Tab Switcher: [Platos] vs [Historial y Ventas]
+        # 2. Tab Switcher: [Platos] vs [Historial y Ventas]
         tabs_row = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
@@ -150,22 +154,6 @@ class AdminScreen(MDScreen):
         tabs_row.add_widget(self.btn_tab_crud)
         tabs_row.add_widget(self.btn_tab_history)
         container.add_widget(tabs_row)
-
-        # Status feedback label
-        status_text = (
-            "Catálogo de platos activo. Pulsa '+ Nuevo Plato' o 'Editar / Oferta' para gestionar."
-            if self.current_tab == "crud"
-            else "Historial contable, auditoría de comandas y métricas financieras."
-        )
-        self.status_label = MDLabel(
-            text=status_text,
-            font_style="Body",
-            role="small",
-            size_hint_y=None,
-            height=dp(18),
-            markup=True,
-        )
-        container.add_widget(self.status_label)
 
         # Scrollable Content
         scroll = ScrollView(size_hint=(1, 1))
@@ -193,6 +181,19 @@ class AdminScreen(MDScreen):
 
     def _render_crud_items(self):
         self.content_container.clear_widgets()
+
+        # Human-readable scrollable description that scrolls up with dishes
+        self.status_label = MDLabel(
+            text="[color=#64748B]Gestión de disponibilidad, precios y promociones del casino central.[/color]",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(28),
+            markup=True,
+            padding=[dp(4), dp(2), dp(4), dp(4)],
+        )
+        self.content_container.add_widget(self.status_label)
+
         products = self.product_repo.get_all(include_inactive=True)
 
         for prod in products:
@@ -203,11 +204,12 @@ class AdminScreen(MDScreen):
                 height=card_h,
                 padding=[dp(14), dp(10), dp(14), dp(10)],
                 spacing=dp(5),
-                style="elevated",
+                style="outlined",
+                theme_bg_color="Custom",
                 md_bg_color=[1.0, 1.0, 1.0, 1.0],
                 radius=[dp(12), dp(12), dp(12), dp(12)],
                 line_color=[0.88, 0.92, 0.96, 1.0],
-                elevation=1,
+                elevation=0,
             )
 
             # Row 1: Code badge + Title + Price
@@ -334,6 +336,18 @@ class AdminScreen(MDScreen):
         report = self.order_service.get_accounting_report()
         all_orders = self.order_service.order_repo.get_all()
 
+        # Human-readable scrollable description that scrolls up with accounting content
+        self.status_label = MDLabel(
+            text="[color=#64748B]Historial contable de ventas, métricas financieras y auditoría de comandas.[/color]",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(28),
+            markup=True,
+            padding=[dp(4), dp(2), dp(4), dp(4)],
+        )
+        self.content_container.add_widget(self.status_label)
+
         # 1. Herramienta Gráfica: Resumen Ejecutivo de Contabilidad
         self.content_container.add_widget(self._build_kpi_summary_card(report))
 
@@ -356,11 +370,12 @@ class AdminScreen(MDScreen):
             height=dp(142),
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[0.96, 0.98, 1.0, 1.0],
             radius=[dp(12), dp(12), dp(12), dp(12)],
-            line_color=[0.02, 0.53, 0.82, 0.3],
-            elevation=2,
+            line_color=[0.02, 0.53, 0.82, 0.35],
+            elevation=0,
         )
 
         title_box = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22))
@@ -457,11 +472,12 @@ class AdminScreen(MDScreen):
             height=card_h,
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(12), dp(12), dp(12), dp(12)],
             line_color=[0.88, 0.92, 0.96, 1.0],
-            elevation=1,
+            elevation=0,
         )
 
         head_box = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22))
@@ -559,11 +575,12 @@ class AdminScreen(MDScreen):
             height=dp(108),
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(12), dp(12), dp(12), dp(12)],
             line_color=[0.88, 0.92, 0.96, 1.0],
-            elevation=1,
+            elevation=0,
         )
 
         title = MDLabel(
@@ -669,11 +686,12 @@ class AdminScreen(MDScreen):
             height=card_h,
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(12), dp(12), dp(12), dp(12)],
             line_color=[0.88, 0.92, 0.96, 1.0],
-            elevation=1,
+            elevation=0,
         )
 
         title = MDLabel(
@@ -783,47 +801,58 @@ class AdminScreen(MDScreen):
         act_count = sum(1 for o in all_orders if o.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY))
         can_count = sum(1 for o in all_orders if o.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED))
 
-        chips_row = MDBoxLayout(
-            orientation="horizontal",
-            size_hint_y=None,
-            height=dp(34),
-            spacing=dp(6),
+        chips_scroll = ScrollView(
+            do_scroll_y=False,
+            do_scroll_x=True,
+            size_hint=(1, None),
+            height=dp(38),
+            bar_width=0,
         )
+        chips_box = MDBoxLayout(
+            orientation="horizontal",
+            size_hint_x=None,
+            size_hint_y=None,
+            height=dp(36),
+            spacing=dp(8),
+            padding=[dp(2), dp(2), dp(2), dp(2)],
+        )
+        chips_box.bind(minimum_width=chips_box.setter("width"))
 
         self.chip_all = create_button(
             text=f"Todos ({len(all_orders)})",
             style="filled" if self.history_filter == "ALL" else "tonal",
-            size_hint=(0.28, None),
+            size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("ALL"),
         )
         self.chip_del = create_button(
             text=f"Entregados ({del_count})",
             style="filled" if self.history_filter == "DELIVERED" else "tonal",
-            size_hint=(0.28, None),
+            size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("DELIVERED"),
         )
         self.chip_act = create_button(
             text=f"Cocina ({act_count})",
             style="filled" if self.history_filter == "ACTIVE" else "tonal",
-            size_hint=(0.22, None),
+            size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("ACTIVE"),
         )
         self.chip_can = create_button(
-            text=f"Canc. ({can_count})",
+            text=f"Cancelados ({can_count})",
             style="filled" if self.history_filter == "CANCELLED" else "tonal",
-            size_hint=(0.22, None),
+            size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("CANCELLED"),
         )
 
-        chips_row.add_widget(self.chip_all)
-        chips_row.add_widget(self.chip_del)
-        chips_row.add_widget(self.chip_act)
-        chips_row.add_widget(self.chip_can)
-        self.content_container.add_widget(chips_row)
+        chips_box.add_widget(self.chip_all)
+        chips_box.add_widget(self.chip_del)
+        chips_box.add_widget(self.chip_act)
+        chips_box.add_widget(self.chip_can)
+        chips_scroll.add_widget(chips_box)
+        self.content_container.add_widget(chips_scroll)
 
         # Dedicated orders container
         self.orders_list_box = MDBoxLayout(
@@ -905,23 +934,27 @@ class AdminScreen(MDScreen):
             o_card = MDCard(
                 orientation="vertical",
                 size_hint_y=None,
-                height=dp(114),
-                padding=[dp(12), dp(8), dp(12), dp(8)],
-                spacing=dp(3),
-                style="elevated",
+                height=dp(132),
+                padding=[dp(12), dp(10), dp(12), dp(10)],
+                spacing=dp(5),
+                style="outlined",
+                theme_bg_color="Custom",
                 md_bg_color=[1.0, 1.0, 1.0, 1.0],
                 radius=[dp(10), dp(10), dp(10), dp(10)],
                 line_color=[0.88, 0.92, 0.96, 1.0],
-                elevation=1,
+                elevation=0,
             )
 
-            o_row1 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20))
+            o_row1 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22), spacing=dp(4))
             o_row1.add_widget(
                 MDLabel(
                     text=f"[b][color=#0A3871]Comanda #{order.comanda_number}[/color][/b] [color=#64748B]({order.id_pedido})[/color]",
                     markup=True,
                     font_style="Title",
                     role="small",
+                    size_hint_x=0.64,
+                    shorten=True,
+                    shorten_from="right",
                 )
             )
             o_row1.add_widget(
@@ -931,15 +964,19 @@ class AdminScreen(MDScreen):
                     halign="right",
                     font_style="Title",
                     role="small",
+                    size_hint_x=0.36,
                 )
             )
 
-            o_row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
+            o_row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20), spacing=dp(4))
             o_row2.add_widget(
                 MDLabel(
                     text=f"Cliente: {order.customer_name} • {order.created_at.strftime('%H:%M')}",
                     font_style="Body",
                     role="small",
+                    size_hint_x=0.56,
+                    shorten=True,
+                    shorten_from="right",
                 )
             )
             o_row2.add_widget(
@@ -949,6 +986,9 @@ class AdminScreen(MDScreen):
                     halign="right",
                     font_style="Label",
                     role="small",
+                    size_hint_x=0.44,
+                    shorten=True,
+                    shorten_from="right",
                 )
             )
 
@@ -961,7 +1001,7 @@ class AdminScreen(MDScreen):
                 shorten=True,
                 shorten_from="right",
                 size_hint_y=None,
-                height=dp(18),
+                height=dp(20),
             )
 
             audit_btn = create_button(
@@ -969,7 +1009,7 @@ class AdminScreen(MDScreen):
                 icon="receipt-text-outline",
                 style="tonal",
                 size_hint=(1, None),
-                height=dp(28),
+                height=dp(32),
                 on_release=lambda x, o=order: self._show_comanda_audit_modal(o),
             )
 
@@ -997,11 +1037,12 @@ class AdminScreen(MDScreen):
             height=modal_h,
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(8),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(16), dp(16), dp(16), dp(16)],
             line_color=[0.04, 0.22, 0.44, 0.4],
-            elevation=4,
+            elevation=0,
         )
 
         # Header
@@ -1163,7 +1204,7 @@ class AdminScreen(MDScreen):
             is_offer=False,
             offer_price="2400",
             offer_label="30% OFF - Oferta Especial",
-            id_editable=True,
+            id_editable=False,
         )
 
     def _open_edit_form(self, prod: Product):
@@ -1256,17 +1297,52 @@ class AdminScreen(MDScreen):
         )
         fields_box.bind(minimum_height=fields_box.setter("height"))
 
-        # 1. ID Input
-        self.input_id = MDTextField(
-            MDTextFieldLeadingIcon(icon="barcode"),
-            MDTextFieldHintText(text="ID Producto (ej: MENU-09)"),
-            mode="outlined",
-            size_hint_y=None,
-            height=dp(52),
-        )
-        self.input_id.text = pid
-        self.input_id.disabled = not id_editable
-        fields_box.add_widget(self.input_id)
+        # 1. ID Field / Institutional Metadata Badge
+        if not id_editable:
+            id_badge = MDCard(
+                orientation="horizontal",
+                size_hint=(1, None),
+                height=dp(44),
+                padding=[dp(12), dp(4), dp(12), dp(4)],
+                spacing=dp(10),
+                style="filled",
+                theme_bg_color="Custom",
+                md_bg_color=[0.94, 0.96, 0.99, 1.0],
+                line_color=[0.82, 0.88, 0.94, 1.0],
+                radius=[dp(10), dp(10), dp(10), dp(10)],
+                elevation=0,
+            )
+            id_badge.add_widget(
+                MDIcon(
+                    icon="barcode-scan",
+                    size_hint=(None, None),
+                    size=(dp(22), dp(22)),
+                    pos_hint={"center_y": 0.5},
+                    theme_icon_color="Custom",
+                    icon_color=UCT_NAVY,
+                )
+            )
+            id_badge.add_widget(
+                MDLabel(
+                    text=f"[color=#64748B]Código Catálogo:[/color] [b][color=#0A3871]{pid}[/color][/b] [color=#94A3B8](Asignado automáticamente)[/color]",
+                    markup=True,
+                    font_style="Body",
+                    role="small",
+                    pos_hint={"center_y": 0.5},
+                )
+            )
+            self.input_id = type("DummyInput", (), {"text": pid})()
+            fields_box.add_widget(id_badge)
+        else:
+            self.input_id = MDTextField(
+                MDTextFieldLeadingIcon(icon="barcode"),
+                MDTextFieldHintText(text="ID Producto (ej: MENU-09)"),
+                mode="outlined",
+                size_hint_y=None,
+                height=dp(52),
+            )
+            self.input_id.text = pid
+            fields_box.add_widget(self.input_id)
 
         # 2. Name Input
         self.input_name = MDTextField(
@@ -1279,33 +1355,66 @@ class AdminScreen(MDScreen):
         self.input_name.text = name
         fields_box.add_widget(self.input_name)
 
-        # 3. Category Selector (Select de categorías disponibles según el menú)
-        cat_box = MDBoxLayout(
+        # 3. Category Selector (Material Design 3 Unified Select Card)
+        self._selected_category = cat or "Menú Normal"
+        self.input_cat = type("DummyCat", (), {"text": self._selected_category})()
+
+        self.cat_select_card = MDCard(
             orientation="horizontal",
-            spacing=dp(8),
+            size_hint=(1, None),
+            height=dp(54),
+            padding=[dp(12), dp(6), dp(12), dp(6)],
+            spacing=dp(10),
+            style="outlined",
+            theme_bg_color="Custom",
+            md_bg_color=[1.0, 1.0, 1.0, 1.0],
+            line_color=[0.75, 0.82, 0.90, 1.0],
+            radius=[dp(10), dp(10), dp(10), dp(10)],
+            elevation=0,
+        )
+        self.cat_select_card.bind(on_release=lambda x: self._show_category_picker())
+
+        cat_icon = MDIcon(
+            icon="tag-outline",
+            pos_hint={"center_y": 0.5},
+            size_hint=(None, None),
+            size=(dp(22), dp(22)),
+            theme_icon_color="Custom",
+            icon_color=UCT_NAVY,
+        )
+        cat_text_box = MDBoxLayout(orientation="vertical", spacing=dp(1), pos_hint={"center_y": 0.5})
+        cat_hint = MDLabel(
+            text="[color=#64748B]Categoría del Menú (Toca para cambiar)[/color]",
+            markup=True,
+            font_style="Label",
+            role="small",
             size_hint_y=None,
-            height=dp(52),
+            height=dp(14),
         )
-        self.input_cat = MDTextField(
-            MDTextFieldLeadingIcon(icon="tag-outline"),
-            MDTextFieldHintText(text="Categoría del Menú"),
-            mode="outlined",
-            size_hint=(0.68, None),
-            height=dp(52),
-            readonly=True,
+        self.cat_value_label = MDLabel(
+            text=f"[b][color=#1E293B]{self._selected_category}[/color][/b]",
+            markup=True,
+            font_style="Body",
+            role="medium",
+            size_hint_y=None,
+            height=dp(20),
         )
-        self.input_cat.text = cat or "Menú Normal"
-        cat_btn = create_button(
-            text="Elegir",
+        cat_text_box.add_widget(cat_hint)
+        cat_text_box.add_widget(self.cat_value_label)
+
+        chevron_icon = MDIcon(
             icon="menu-down",
-            style="tonal",
-            size_hint=(0.32, None),
-            height=dp(48),
-            on_release=lambda x: self._show_category_picker(),
+            pos_hint={"center_y": 0.5},
+            size_hint=(None, None),
+            size=(dp(24), dp(24)),
+            theme_icon_color="Custom",
+            icon_color=UCT_NAVY,
         )
-        cat_box.add_widget(self.input_cat)
-        cat_box.add_widget(cat_btn)
-        fields_box.add_widget(cat_box)
+
+        self.cat_select_card.add_widget(cat_icon)
+        self.cat_select_card.add_widget(cat_text_box)
+        self.cat_select_card.add_widget(chevron_icon)
+        fields_box.add_widget(self.cat_select_card)
 
         # 4. Price & Stock Row
         row_ps = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(52))
@@ -1348,11 +1457,12 @@ class AdminScreen(MDScreen):
             height=dp(175) if self._is_offer_active else dp(68),
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(8),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=SOFT_MINT,  # Fondo menta / verde claro
             radius=[dp(14), dp(14), dp(14), dp(14)],
             line_color=[0.40, 0.80, 0.50, 1.0],
-            elevation=1,
+            elevation=0,
         )
 
         self.toggle_offer_text = MDButtonText(
@@ -1461,7 +1571,7 @@ class AdminScreen(MDScreen):
     def _save_product(self):
         pid = self.input_id.text.strip()
         name = self.input_name.text.strip()
-        cat = self.input_cat.text.strip() or "Menú Normal"
+        cat = getattr(self, "_selected_category", None) or (self.input_cat.text.strip() if self.input_cat else "Menú Normal")
         try:
             price = int(self.input_price.text.strip())
             stock = int(self.input_stock.text.strip())
@@ -1524,11 +1634,12 @@ class AdminScreen(MDScreen):
             height=dp(380),
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(16), dp(16), dp(16), dp(16)],
             line_color=[0.04, 0.22, 0.44, 0.4],
-            elevation=4,
+            elevation=0,
         )
         c_title = MDLabel(
             text="[b][color=#0A3871]Seleccionar Categoría del Menú[/color][/b]",
@@ -1558,7 +1669,7 @@ class AdminScreen(MDScreen):
         )
         cats_list.bind(minimum_height=cats_list.setter("height"))
 
-        current_val = self.input_cat.text.strip() if self.input_cat else ""
+        current_val = self._selected_category if hasattr(self, "_selected_category") else (self.input_cat.text.strip() if self.input_cat else "")
         for cat_name, cat_icon in categories:
             is_selected = (current_val == cat_name)
             btn = create_button(
@@ -1586,8 +1697,11 @@ class AdminScreen(MDScreen):
         self.root_layout.add_widget(self.category_modal, index=1)
 
     def _select_category(self, cat_name: str):
-        if self.input_cat:
+        self._selected_category = cat_name
+        if hasattr(self, "input_cat") and self.input_cat:
             self.input_cat.text = cat_name
+        if hasattr(self, "cat_value_label") and self.cat_value_label:
+            self.cat_value_label.text = f"[b][color=#1E293B]{cat_name}[/color][/b]"
         self._hide_modals()
 
     # --- Deletion modal confirmation ---
@@ -1601,11 +1715,12 @@ class AdminScreen(MDScreen):
             height=dp(130),
             padding=[dp(14), dp(12), dp(14), dp(12)],
             spacing=dp(8),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(14), dp(14), dp(14), dp(14)],
-            line_color=[0.9, 0.2, 0.2, 0.4],
-            elevation=3,
+            line_color=[0.9, 0.2, 0.2, 0.5],
+            elevation=0,
         )
         title = MDLabel(
             text="[b][color=#EF4444]Confirmar Eliminación[/color][/b]",

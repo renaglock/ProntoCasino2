@@ -31,6 +31,8 @@ class CatalogScreen(MDScreen):
         self.order_service = order_service
         self.auth_service = auth_service
         self.selected_category = "Todos"
+        self._loaded_category = None
+        self._is_dirty = True
 
         self.root_layout = None
         self.balance_label = None
@@ -39,6 +41,7 @@ class CatalogScreen(MDScreen):
         self.products_container = None
         self.cat_box = None
         self.confirm_modal = None
+        self.desc_label = None
 
         self._build_ui()
 
@@ -47,6 +50,8 @@ class CatalogScreen(MDScreen):
             orientation="vertical",
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(8),
+            theme_bg_color="Custom",
+            md_bg_color=[0.96, 0.97, 0.99, 1.0],
         )
 
         # 1. Location & User Role Banner (Symmetrical & High Contrast)
@@ -55,11 +60,12 @@ class CatalogScreen(MDScreen):
             size_hint_y=None,
             height=dp(38),
             padding=[dp(14), dp(6), dp(14), dp(6)],
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(10), dp(10), dp(10), dp(10)],
-            line_color=[0.87, 0.92, 0.95, 1],
-            elevation=1,
+            line_color=[0.88, 0.92, 0.96, 1],
+            elevation=0,
         )
         location_label = MDLabel(
             text=f"[color=#0A3871][b]{config.LOCATION_SUBTITLE}[/b][/color]",
@@ -88,7 +94,7 @@ class CatalogScreen(MDScreen):
         cat_scroll.add_widget(self.cat_box)
         self.root_layout.add_widget(cat_scroll)
 
-        # 3. Products List (Scrollable)
+        # 4. Products List (Scrollable)
         scroll = ScrollView(size_hint=(1, 1))
         self.products_container = MDBoxLayout(
             orientation="vertical",
@@ -99,18 +105,19 @@ class CatalogScreen(MDScreen):
         scroll.add_widget(self.products_container)
         self.root_layout.add_widget(scroll)
 
-        # 4. Cart Summary & Action Footer (High Contrast)
+        # 5. Cart Summary & Action Footer (High Contrast)
         footer = MDCard(
             orientation="vertical",
             size_hint_y=None,
             height=dp(92),
             padding=[dp(12), dp(8), dp(12), dp(8)],
             spacing=dp(4),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(14), dp(14), dp(14), dp(14)],
-            line_color=[0.87, 0.92, 0.95, 1],
-            elevation=2,
+            line_color=[0.88, 0.92, 0.96, 1],
+            elevation=0,
         )
         self.cart_label = MDLabel(
             text="Carrito vacío",
@@ -194,19 +201,47 @@ class CatalogScreen(MDScreen):
             self.cat_box.add_widget(btn)
 
     def on_enter(self):
-        """Update balance and products on screen enter."""
-        self.refresh_catalog()
+        """Update balance and cart on screen enter; only rebuild catalog if dirty or category changed."""
+        user = self.auth_service.current_user
+        if user:
+            if user.role == UserRole.CLIENT:
+                self.balance_label.text = "[color=#0288D1][b]Estudiante UCT[/b][/color]"
+            elif user.role == UserRole.GUEST:
+                self.balance_label.text = "[color=#EA580C][b]Invitado UCT[/b][/color]"
+            else:
+                self.balance_label.text = f"[color=#64748B][b]{user.role.value}[/b][/color]"
+        self._update_cart_label()
+
+        if self._is_dirty or self._loaded_category != self.selected_category:
+            self.refresh_catalog()
 
     def refresh_catalog(self):
+        self._loaded_category = self.selected_category
+        self._is_dirty = False
+
         user = self.auth_service.current_user
-        if user.role == UserRole.CLIENT:
-            self.balance_label.text = "[color=#0288D1][b]Estudiante UCT[/b][/color]"
-        elif user.role == UserRole.GUEST:
-            self.balance_label.text = "[color=#EA580C][b]Invitado UCT[/b][/color]"
-        else:
-            self.balance_label.text = f"[color=#64748B][b]{user.role.value}[/b][/color]"
+        if user:
+            if user.role == UserRole.CLIENT:
+                self.balance_label.text = "[color=#0288D1][b]Estudiante UCT[/b][/color]"
+            elif user.role == UserRole.GUEST:
+                self.balance_label.text = "[color=#EA580C][b]Invitado UCT[/b][/color]"
+            else:
+                self.balance_label.text = f"[color=#64748B][b]{user.role.value}[/b][/color]"
 
         self.products_container.clear_widgets()
+
+        # Human-readable scrollable description that scrolls up with dish cards
+        self.desc_label = MDLabel(
+            text="[color=#64748B]Selecciona tus platos de hoy y retira en casino sin hacer filas.[/color]",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(30),
+            markup=True,
+            padding=[dp(4), dp(2), dp(4), dp(6)],
+        )
+        self.products_container.add_widget(self.desc_label)
+
         products = self.order_service.product_repo.get_by_category(self.selected_category)
 
         # Empty state handling
@@ -217,10 +252,12 @@ class CatalogScreen(MDScreen):
                 height=dp(110),
                 padding=[dp(16), dp(14), dp(16), dp(14)],
                 spacing=dp(6),
-                style="elevated",
+                style="outlined",
+                theme_bg_color="Custom",
                 md_bg_color=[1, 1, 1, 1],
                 radius=[dp(12), dp(12), dp(12), dp(12)],
                 line_color=[0.88, 0.92, 0.96, 1],
+                elevation=0,
             )
             empty_card.add_widget(
                 MDLabel(
@@ -259,11 +296,12 @@ class CatalogScreen(MDScreen):
                 height=card_h,
                 padding=[dp(14), dp(8), dp(14), dp(8)],
                 spacing=dp(4),
-                style="elevated",
+                style="outlined",
+                theme_bg_color="Custom",
                 md_bg_color=card_bg,
                 radius=[dp(12), dp(12), dp(12), dp(12)],
                 line_color=card_border,
-                elevation=2 if prod.is_offer else 1,
+                elevation=0,
             )
 
             # Row 1: Title and Price (Symmetrical and high contrast)
@@ -416,11 +454,12 @@ class CatalogScreen(MDScreen):
             height=dp(140),
             padding=[dp(14), dp(12), dp(14), dp(12)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1, 1, 1, 1],
             radius=[dp(14), dp(14), dp(14), dp(14)],
             line_color=[0.04, 0.22, 0.44, 0.4],
-            elevation=3,
+            elevation=0,
         )
         modal_title = MDLabel(
             text="[color=#0A3871][b]Confirmar Reserva de Comanda[/b][/color]",

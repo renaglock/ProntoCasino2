@@ -1,10 +1,13 @@
 """Standardized UI components for Pronto Casino UCT ensuring high contrast, zero missing glyphs, and visual symmetry."""
 
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from kivy.metrics import dp
+from kivy.uix.behaviors import ButtonBehavior
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
 from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
+from kivymd.uix.label import MDLabel, MDIcon
+
 
 
 # Institutional Color Palette
@@ -31,6 +34,7 @@ def create_button(
     size_hint=(None, None),
     height=dp(34),
     width=None,
+    icon_size: Optional[Any] = None,
     **kwargs,
 ) -> MDButton:
     """Build a button with guaranteed contrast, clean typography, and optional Material icon.
@@ -71,13 +75,15 @@ def create_button(
         base_style = "tonal"
 
     if icon:
-        children.append(
-            MDButtonIcon(
-                icon=icon,
-                theme_icon_color="Custom",
-                icon_color=fg_color,
-            )
-        )
+        icon_kwargs = {
+            "icon": icon,
+            "theme_icon_color": "Custom",
+            "icon_color": fg_color,
+        }
+        if icon_size is not None:
+            icon_kwargs["size_hint"] = (None, None)
+            icon_kwargs["size"] = (icon_size, icon_size)
+        children.append(MDButtonIcon(**icon_kwargs))
 
     children.append(
         MDButtonText(
@@ -87,10 +93,15 @@ def create_button(
         )
     )
 
+    has_custom_w = (size_hint and size_hint[0] is not None) or width is not None
+    has_custom_h = (size_hint and size_hint[1] is not None) or height is not None
+
     btn_kwargs = {
         "style": base_style,
         "theme_bg_color": "Custom",
         "md_bg_color": bg_color,
+        "theme_width": "Custom" if has_custom_w else "Primary",
+        "theme_height": "Custom" if has_custom_h else "Primary",
         "size_hint": size_hint,
         "height": height,
     }
@@ -100,6 +111,8 @@ def create_button(
         btn_kwargs["on_release"] = on_release
 
     btn = MDButton(*children, **btn_kwargs)
+    if size_hint is not None:
+        btn.size_hint = size_hint
     return btn
 
 
@@ -139,4 +152,100 @@ def create_offer_badge(offer_label: str) -> MDCard:
         )
     )
     return badge
+
+
+class M3NavItem(ButtonBehavior, MDBoxLayout):
+    """Authentic, high-end mobile navigation tab.
+    Full-width touchable surface across icon, label, and container.
+    Zero toggle-switch artifacts, zero touch-blocking sub-widgets."""
+
+    def __init__(self, text: str, icon: str, on_release: Optional[Callable] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.size_hint = (1, 1)
+        self.spacing = dp(2)
+        self.padding = [dp(2), dp(2), dp(2), dp(4)]
+        self.theme_bg_color = "Custom"
+        self.md_bg_color = [1.0, 1.0, 1.0, 1.0]  # Solid white
+        self.nav_text = text
+        self._on_release_cb = on_release
+
+        # 1. Top active accent indicator (sleek corporate bar)
+        self.top_indicator = MDBoxLayout(
+            size_hint=(None, None),
+            size=(dp(36), dp(3)),
+            pos_hint={"center_x": 0.5},
+            radius=[dp(2), dp(2), dp(2), dp(2)],
+            theme_bg_color="Custom",
+            md_bg_color=[1.0, 1.0, 1.0, 0.0],  # Transparent when inactive
+        )
+
+        # 2. Centered prominent icon
+        self.icon_box = MDBoxLayout(
+            orientation="vertical",
+            size_hint=(1, None),
+            height=dp(26),
+            pos_hint={"center_x": 0.5},
+        )
+        self.icon_w = MDIcon(
+            icon=icon,
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
+            theme_icon_color="Custom",
+            icon_color=[0.39, 0.45, 0.55, 1.0],  # Slate Gray
+        )
+        self.icon_box.add_widget(self.icon_w)
+
+        # 3. Centered typography label
+        self.lbl = MDLabel(
+            text=f"[color=#64748B]{text}[/color]",
+            markup=True,
+            halign="center",
+            font_style="Label",
+            role="small",
+            size_hint_y=None,
+            height=dp(16),
+        )
+
+        self.add_widget(self.top_indicator)
+        self.add_widget(self.icon_box)
+        self.add_widget(self.lbl)
+
+        if on_release:
+            self.bind(on_release=on_release)
+
+    def on_touch_down(self, touch):
+        """Intercept touches anywhere inside the tab bounding box."""
+        if self.collide_point(*touch.pos):
+            touch.grab(self)
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        """Trigger navigation whenever a touch releases inside the tab."""
+        if touch.grab_current is self:
+            touch.ungrab(self)
+            if self.collide_point(*touch.pos):
+                self.dispatch("on_release")
+                if self._on_release_cb:
+                    self._on_release_cb(self)
+            return True
+        return super().on_touch_up(touch)
+
+    def set_active(self, is_active: bool):
+        """Update visual state with pristine contrast and zero switch appearance."""
+        if is_active:
+            # Active: Vibrant UCT Navy (#0A3871) top accent + icon + bold label
+            self.top_indicator.md_bg_color = [0.04, 0.22, 0.44, 1.0]
+            self.icon_w.icon_color = [0.04, 0.22, 0.44, 1.0]
+            self.lbl.text = f"[b][color=#0A3871]{self.nav_text}[/color][/b]"
+        else:
+            # Inactive: Transparent accent + Slate Gray (#64748B) icon + regular label
+            self.top_indicator.md_bg_color = [1.0, 1.0, 1.0, 0.0]
+            self.icon_w.icon_color = [0.39, 0.45, 0.55, 1.0]
+            self.lbl.text = f"[color=#64748B]{self.nav_text}[/color]"
+
+
+def create_nav_item(text: str, icon: str, on_release: Optional[Callable] = None) -> M3NavItem:
+    """Builds an authentic, responsive navigation tab with full-area touch capture."""
+    return M3NavItem(text=text, icon=icon, on_release=on_release)
 

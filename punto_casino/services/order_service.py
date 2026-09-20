@@ -79,6 +79,10 @@ class OrderService:
         """Calculate total in CLP for all items currently in cart."""
         return sum(item.subtotal for item in self.get_cart_items())
 
+    def get_cart_count(self) -> int:
+        """Return total count of all items currently in cart."""
+        return sum(self._cart.values())
+
     def checkout(self) -> Order:
         """Create numbered comanda, deduct student wallet, reserve stock, and persist order."""
         items = self.get_cart_items()

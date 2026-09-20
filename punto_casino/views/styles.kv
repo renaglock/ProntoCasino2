@@ -15,23 +15,33 @@
 <MDScreen>:
     md_bg_color: 0.95, 0.97, 0.99, 1
 
-# Tarjeta Base con Sombra Suave y Esquinas Redondeadas
+<MDCard>:
+    elevation: 0
+    shadow_color: 0, 0, 0, 0
+    shadow_softness: 0
+    line_color: 0.88, 0.92, 0.96, 1
+
+# Tarjeta Base con Contorno Sutil y Cero Sombras Glitch
 <UCTCard@MDCard>:
-    style: "elevated"
+    style: "outlined"
+    theme_bg_color: "Custom"
     md_bg_color: 1.0, 1.0, 1.0, 1
     radius: [dp(14), dp(14), dp(14), dp(14)]
-    line_color: 0.87, 0.92, 0.95, 1
-    elevation: 1
+    line_color: 0.88, 0.92, 0.96, 1
+    elevation: 0
+    shadow_color: 0, 0, 0, 0
     padding: [dp(14), dp(10), dp(14), dp(10)]
     spacing: dp(4)
 
 # Tarjeta de Autenticación / Credenciales
 <UCTAuthCard@MDCard>:
-    style: "elevated"
+    style: "outlined"
+    theme_bg_color: "Custom"
     md_bg_color: 1.0, 1.0, 1.0, 1
     radius: [dp(16), dp(16), dp(16), dp(16)]
-    line_color: 0.85, 0.91, 0.97, 1
-    elevation: 2
+    line_color: 0.82, 0.88, 0.95, 1
+    elevation: 0
+    shadow_color: 0, 0, 0, 0
     padding: [dp(18), dp(18), dp(18), dp(18)]
     spacing: dp(10)
 

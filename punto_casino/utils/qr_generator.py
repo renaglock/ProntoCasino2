@@ -4,7 +4,6 @@ import io
 import json
 from typing import Any, Dict, Optional
 import qrcode
-from kivy.core.image import Image as CoreImage
 
 
 def generate_pickup_payload(order_id: str, customer_name: str) -> str:
@@ -35,6 +34,8 @@ def parse_pickup_payload(payload_str: str) -> Optional[Dict[str, Any]]:
 
 def generate_qr_texture(payload_str: str):
     """Generate a crisp, high-resolution in-memory Kivy Texture from a QR payload string with UCT navy styling."""
+    from kivy.core.image import Image as CoreImage
+
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,

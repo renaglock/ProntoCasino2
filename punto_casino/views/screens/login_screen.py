@@ -93,11 +93,12 @@ class LoginScreen(MDScreen):
             height=dp(360),
             padding=[dp(22), dp(18), dp(22), dp(18)],
             spacing=dp(10),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1],  # Blanco puro
             radius=[dp(18), dp(18), dp(18), dp(18)],
             line_color=[0.88, 0.92, 0.96, 1],
-            elevation=1,
+            elevation=0,
         )
 
         form_title = MDLabel(

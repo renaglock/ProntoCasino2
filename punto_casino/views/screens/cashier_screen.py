@@ -58,16 +58,19 @@ class CashierScreen(MDScreen):
             orientation="vertical",
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(8),
+            theme_bg_color="Custom",
+            md_bg_color=[0.96, 0.97, 0.99, 1.0],
         )
 
         # 1. Header with Scan & Tab Switcher (High contrast, vector icons)
         header = MDBoxLayout(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(80),
+            height=dp(108),
             spacing=dp(6),
         )
 
+        # 1.1 Title Row
         title_row = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
@@ -91,7 +94,18 @@ class CashierScreen(MDScreen):
         title_row.add_widget(title)
         title_row.add_widget(scan_btn)
 
-        # Tabs: Cola Activa vs Historial Turno
+        # 1.2 View Description / Status Feedback (Always fixed at the top)
+        self.status_label = MDLabel(
+            text="[color=#64748B]Comandas activas listas para preparación y cobro en mesón.[/color]",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(22),
+            markup=True,
+            padding=[dp(2), dp(2), dp(2), dp(2)],
+        )
+
+        # 1.3 Tabs: Cola Activa vs Historial Turno
         tabs_row = MDBoxLayout(
             orientation="horizontal",
             size_hint_y=None,
@@ -118,30 +132,20 @@ class CashierScreen(MDScreen):
         tabs_row.add_widget(self.btn_tab_history)
 
         header.add_widget(title_row)
+        header.add_widget(self.status_label)
         header.add_widget(tabs_row)
         self.root_layout.add_widget(header)
 
-        # 2. Status Feedback Label
-        self.status_label = MDLabel(
-            text="Comandas activas listas para preparación y cobro en mesón.",
-            font_style="Body",
-            role="small",
-            size_hint_y=None,
-            height=dp(18),
-            markup=True,
-        )
-        self.root_layout.add_widget(self.status_label)
-
         # 3. Orders Scroll Container
-        scroll = ScrollView(size_hint=(1, 1))
+        self.scroll = ScrollView(size_hint=(1, 1))
         self.orders_container = MDBoxLayout(
             orientation="vertical",
             spacing=dp(8),
             size_hint_y=None,
         )
         self.orders_container.bind(minimum_height=self.orders_container.setter("height"))
-        scroll.add_widget(self.orders_container)
-        self.root_layout.add_widget(scroll)
+        self.scroll.add_widget(self.orders_container)
+        self.root_layout.add_widget(self.scroll)
 
         self.add_widget(self.root_layout)
 
@@ -179,10 +183,12 @@ class CashierScreen(MDScreen):
                 size_hint_y=None,
                 height=dp(70),
                 padding=dp(12),
-                style="elevated",
+                style="outlined",
+                theme_bg_color="Custom",
                 md_bg_color=[1.0, 1.0, 1.0, 1.0],
                 radius=[dp(12), dp(12), dp(12), dp(12)],
                 line_color=[0.88, 0.92, 0.96, 1.0],
+                elevation=0,
             )
             empty_card.add_widget(
                 MDLabel(
@@ -220,20 +226,24 @@ class CashierScreen(MDScreen):
             height=card_h,
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(12), dp(12), dp(12), dp(12)],
             line_color=[0.88, 0.92, 0.96, 1.0],
-            elevation=1,
+            elevation=0,
         )
 
         # Line 1: Comanda Number & Total
-        line1 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(24))
+        line1 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(24), spacing=dp(4))
         c_title = MDLabel(
             text=f"[b][color=#0A3871]Comanda #{order.comanda_number}[/color][/b] [color=#64748B]({order.id_pedido})[/color]",
             markup=True,
             font_style="Title",
             role="small",
+            size_hint_x=0.64,
+            shorten=True,
+            shorten_from="right",
         )
         c_total = MDLabel(
             text=f"[b][color=#0288D1]{format_currency(order.total)}[/color][/b]",
@@ -241,18 +251,20 @@ class CashierScreen(MDScreen):
             halign="right",
             font_style="Title",
             role="small",
+            size_hint_x=0.36,
         )
         line1.add_widget(c_title)
         line1.add_widget(c_total)
         card.add_widget(line1)
 
         # Line 2: Customer Name & Status Badge
-        line2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20))
+        line2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20), spacing=dp(4))
         c_meta = MDLabel(
             text=f"[color=#475569]Cliente: {order.customer_name} • {order.created_at.strftime('%H:%M')}[/color]",
             markup=True,
             font_style="Body",
             role="small",
+            size_hint_x=0.58,
             shorten=True,
             shorten_from="right",
         )
@@ -262,6 +274,9 @@ class CashierScreen(MDScreen):
             halign="right",
             font_style="Label",
             role="small",
+            size_hint_x=0.42,
+            shorten=True,
+            shorten_from="right",
         )
         line2.add_widget(c_meta)
         line2.add_widget(c_badge)
@@ -381,17 +396,25 @@ class CashierScreen(MDScreen):
     def _show_qr_scanner_modal(self, prefill_id: str = ""):
         self._hide_modals()
 
+        # Hide background scroll to avoid any background card leaking
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 0
+            self.scroll.size_hint_y = None
+            self.scroll.height = 0
+            self.scroll.disabled = True
+
         self.scanner_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(440),
+            height=dp(455),
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(6),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(16), dp(16), dp(16), dp(16)],
             line_color=[0.04, 0.22, 0.44, 0.4],
-            elevation=3,
+            elevation=0,
         )
 
         title = MDLabel(
@@ -408,7 +431,7 @@ class CashierScreen(MDScreen):
         self.cam_container = MDCard(
             orientation="vertical",
             size_hint=(1, None),
-            height=dp(165),
+            height=dp(160),
             style="filled",
             theme_bg_color="Custom",
             md_bg_color=[0.93, 0.96, 0.99, 1.0],
@@ -449,17 +472,27 @@ class CashierScreen(MDScreen):
         scan_tools_row.add_widget(demo_btn)
         self.scanner_modal.add_widget(scan_tools_row)
 
-        # 3. Code Input (Manual or Barcode Gun)
+        # 3. Code Input (Explicit title label prevents floating hint collision)
+        input_container = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_y=None, height=dp(56))
+        input_title = MDLabel(
+            text="[b][color=#0A3871]Código de Comanda / Pedido:[/color][/b]",
+            markup=True,
+            font_style="Label",
+            role="medium",
+            size_hint_y=None,
+            height=dp(16),
+        )
         self.qr_text_input = MDTextField(
             MDTextFieldLeadingIcon(icon="barcode-scan"),
-            MDTextFieldHintText(text="Código de Pedido (ej: PED-123456)"),
             mode="outlined",
             size_hint_y=None,
-            height=dp(42),
+            height=dp(38),
         )
         if prefill_id:
             self.qr_text_input.text = prefill_id
-        self.scanner_modal.add_widget(self.qr_text_input)
+        input_container.add_widget(input_title)
+        input_container.add_widget(self.qr_text_input)
+        self.scanner_modal.add_widget(input_container)
 
         # 4. Status / Feedback box
         self.scanner_feedback_lbl = MDLabel(
@@ -662,17 +695,24 @@ class CashierScreen(MDScreen):
         """Show clear confirmation modal to charge and deliver comanda immediately."""
         self._hide_modals()
 
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 0
+            self.scroll.size_hint_y = None
+            self.scroll.height = 0
+            self.scroll.disabled = True
+
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
             height=dp(175),
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(10),
-            style="elevated",
+            style="outlined",
+            theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
             radius=[dp(16), dp(16), dp(16), dp(16)],
             line_color=[0.04, 0.22, 0.44, 0.4],
-            elevation=3,
+            elevation=0,
         )
         c_title = MDLabel(
             text="[b][color=#0A3871]Cobrar y Entregar Comanda[/color][/b]",
@@ -701,6 +741,7 @@ class CashierScreen(MDScreen):
         btn_charge = create_button(
             text="Confirmar Cobro",
             icon="cash-register",
+            icon_size=dp(14),
             style="filled",
             size_hint=(0.6, None),
             height=dp(34),
@@ -746,6 +787,10 @@ class CashierScreen(MDScreen):
 
     def _hide_modals(self):
         self._stop_camera()
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 1
+            self.scroll.size_hint_y = 1
+            self.scroll.disabled = False
         if self.scanner_modal and self.scanner_modal in self.root_layout.children:
             self.root_layout.remove_widget(self.scanner_modal)
             self.scanner_modal = None

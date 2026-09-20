@@ -45,3 +45,8 @@ bin/
 # Antigravity artifacts & cache
 .gemini/
 
+# Temporary screenshots & media
+screenshot_*.png
+snap_*.png
+*.png.tmp
+
