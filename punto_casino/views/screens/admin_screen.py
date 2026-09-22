@@ -17,11 +17,13 @@ from kivymd.uix.textfield import (
 from punto_casino.models.order import Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
 from punto_casino.models.product import Product
 from punto_casino.repositories.product_repository import InMemoryProductRepository
+from punto_casino.core.config import get_category_style
 from punto_casino.services.order_service import OrderService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     create_button,
     create_offer_badge,
+    create_category_pill,
     LIGHT_GREEN,
     SOFT_MINT,
     UCT_ICE_BLUE,
@@ -250,14 +252,9 @@ class AdminScreen(MDScreen):
                 offer_msg = prod.offer_label or "Por vencer hoy"
                 card.add_widget(create_offer_badge(offer_msg))
 
-            # Row 2: Category & Stock Pill
-            row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20))
-            cat_lbl = MDLabel(
-                text=f"[color=#64748B]{prod.category}[/color]",
-                markup=True,
-                font_style="Body",
-                role="small",
-            )
+            # Row 2: Category Pill & Stock Pill
+            row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20), spacing=dp(6))
+            cat_pill = create_category_pill(prod.category)
             stock_color = "#10B981" if prod.stock > 0 else "#EF4444"
             stock_msg = f"{prod.stock} disp." if prod.stock > 0 else "Agotado"
             stock_lbl = MDLabel(
@@ -267,7 +264,7 @@ class AdminScreen(MDScreen):
                 font_style="Label",
                 role="small",
             )
-            row2.add_widget(cat_lbl)
+            row2.add_widget(cat_pill)
             row2.add_widget(stock_lbl)
             card.add_widget(row2)
 
@@ -490,16 +487,6 @@ class AdminScreen(MDScreen):
         head_box.add_widget(head_title)
         card.add_widget(head_box)
 
-        cat_colors = {
-            "Menú Normal": [0.04, 0.22, 0.44, 1.0],       # Azul UCT
-            "Menú Ejecutivo": [0.01, 0.53, 0.82, 1.0],    # Celeste UCT
-            "Menú Hipocalórico": [0.18, 0.76, 0.42, 1.0], # Verde Claro
-            "Menú Vegetariano": [0.06, 0.65, 0.45, 1.0],  # Verde Esmeralda
-            "Comidas Rápidas": [0.85, 0.47, 0.02, 1.0],   # Ámbar
-            "Bebidas": [0.05, 0.58, 0.53, 1.0],           # Teal
-            "Postres y Snacks": [0.60, 0.25, 0.70, 1.0],  # Morado
-        }
-
         if not categories:
             empty_msg = MDLabel(
                 text="[color=#64748B]Aún no hay comandas cobradas para clasificar ventas.[/color]",
@@ -514,7 +501,8 @@ class AdminScreen(MDScreen):
 
         for cat in categories:
             c_name = cat["category"]
-            c_color = cat_colors.get(c_name, [0.39, 0.45, 0.55, 1.0])
+            cat_style = get_category_style(c_name)
+            c_color = cat_style["rgba"]
             c_rev = format_currency(cat["revenue"])
             c_pct = cat["percentage"]
 
@@ -522,7 +510,7 @@ class AdminScreen(MDScreen):
             
             label_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
             cat_name_lbl = MDLabel(
-                text=f"[b][color=#0A3871]{c_name}[/color][/b] [color=#64748B]({cat['quantity']} un.)[/color]",
+                text=f"[b][color={cat_style['hex']}]{c_name}[/color][/b] [color=#64748B]({cat['quantity']} un.)[/color]",
                 markup=True,
                 font_style="Body",
                 role="small",
@@ -644,17 +632,17 @@ class AdminScreen(MDScreen):
             )
         card.add_widget(bar_box)
 
-        # Legend Row
+        # Legend Row (Crisp typography without broken unicode box glyphs)
         legend_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(26))
         lbl_ent = MDLabel(
-            text=f"[color=#10B981]● Entregadas ({del_count})[/color]",
+            text=f"[b][color=#10B981]Entregadas: {del_count}[/color][/b]",
             markup=True,
             font_style="Label",
             role="small",
             size_hint_x=0.38,
         )
         lbl_pen = MDLabel(
-            text=f"[color=#D97706]● En Cocina ({pen_count})[/color]",
+            text=f"[b][color=#D97706]En Cocina: {pen_count}[/color][/b]",
             markup=True,
             halign="center",
             font_style="Label",
@@ -662,7 +650,7 @@ class AdminScreen(MDScreen):
             size_hint_x=0.34,
         )
         lbl_can = MDLabel(
-            text=f"[color=#EF4444]● Canceladas ({can_count})[/color]",
+            text=f"[b][color=#EF4444]Canceladas: {can_count}[/color][/b]",
             markup=True,
             halign="right",
             font_style="Label",
@@ -722,16 +710,17 @@ class AdminScreen(MDScreen):
         for idx, dish in enumerate(dishes[:4]):
             b_text = badges[idx] if idx < len(badges) else f"#{idx+1}"
             b_color = badge_colors[idx] if idx < len(badge_colors) else "#94A3B8"
+            cat_style = get_category_style(dish.get("category", "Menú Normal"))
 
             item_box = MDBoxLayout(orientation="vertical", size_hint_y=None, height=dp(32), spacing=dp(3))
             
             line1 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
             d_name = MDLabel(
-                text=f"[b][color={b_color}][{b_text}][/color][/b] [color=#1E293B]{dish['name']}[/color]",
+                text=f"[b][color={b_color}][{b_text}][/color][/b] [color=#1E293B]{dish['name']}[/color] [color={cat_style['hex']}][b]({cat_style['label']})[/b][/color]",
                 markup=True,
                 font_style="Body",
                 role="small",
-                size_hint_x=0.62,
+                size_hint_x=0.64,
                 shorten=True,
                 shorten_from="right",
             )
@@ -741,12 +730,12 @@ class AdminScreen(MDScreen):
                 halign="right",
                 font_style="Body",
                 role="small",
-                size_hint_x=0.38,
+                size_hint_x=0.36,
             )
             line1.add_widget(d_name)
             line1.add_widget(d_stats)
 
-            # Intensity bar
+            # Intensity bar colored consistently by product category
             track = MDCard(
                 size_hint=(1, None),
                 height=dp(6),
@@ -761,7 +750,7 @@ class AdminScreen(MDScreen):
                 size_hint=(rel_ratio, 1),
                 style="filled",
                 theme_bg_color="Custom",
-                md_bg_color=[0.01, 0.53, 0.82, 0.85],
+                md_bg_color=cat_style["rgba"],
                 radius=[dp(3), dp(3), dp(3), dp(3)],
                 elevation=0,
             )

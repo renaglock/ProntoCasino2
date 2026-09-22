@@ -8,7 +8,7 @@ from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 
-from punto_casino.core.config import config
+from punto_casino.core.config import config, get_category_style
 from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
@@ -357,9 +357,10 @@ class CatalogScreen(MDScreen):
 
             # Row 2: Category and Stock Badges
             badge_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
+            cat_style = get_category_style(prod.category)
             badge_line.add_widget(
                 MDLabel(
-                    text=f"[color=#64748B]{prod.category}[/color]",
+                    text=f"[b][color={cat_style['hex']}]{prod.category}[/color][/b]",
                     markup=True,
                     font_style="Label",
                     role="small",

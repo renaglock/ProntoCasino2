@@ -154,6 +154,36 @@ def create_offer_badge(offer_label: str) -> MDCard:
     return badge
 
 
+def create_category_pill(category: str) -> MDCard:
+    """Create an authentic Material 3 pill badge displaying category name with coherent color branding."""
+    from punto_casino.core.config import get_category_style
+
+    cat_style = get_category_style(category)
+    badge = MDCard(
+        orientation="horizontal",
+        size_hint=(None, None),
+        height=dp(20),
+        padding=[dp(6), dp(1), dp(6), dp(1)],
+        spacing=dp(3),
+        style="filled",
+        theme_bg_color="Custom",
+        md_bg_color=cat_style["bg_light"],
+        radius=[dp(6), dp(6), dp(6), dp(6)],
+        line_color=[*cat_style["rgba"][:3], 0.35],
+        elevation=0,
+    )
+    badge.add_widget(
+        MDLabel(
+            text=f"[b][color={cat_style['hex']}]{category}[/color][/b]",
+            markup=True,
+            font_style="Label",
+            role="small",
+            adaptive_width=True,
+        )
+    )
+    return badge
+
+
 class M3NavItem(ButtonBehavior, MDBoxLayout):
     """Authentic, high-end mobile navigation tab.
     Full-width touchable surface across icon, label, and container.

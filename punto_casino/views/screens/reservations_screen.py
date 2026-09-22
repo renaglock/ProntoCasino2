@@ -3,6 +3,7 @@
 from kivy.metrics import dp
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
@@ -31,6 +32,7 @@ class ReservationsScreen(MDScreen):
         self.status_label = None
         self.detail_modal = None
         self.confirm_modal = None
+        self.bottom_spacer = None
 
         self._build_ui()
 
@@ -439,6 +441,14 @@ class ReservationsScreen(MDScreen):
         actions_box.add_widget(close_btn)
 
         self.detail_modal.add_widget(actions_box)
+
+        # Flexible bottom spacer ensures modal and header are anchored firmly to the top,
+        # leaving all unused dead space at the bottom of the screen.
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
         self.root_layout.add_widget(self.detail_modal, index=1)
 
     def _charge_order_as_cashier(self, order: Order):
@@ -460,6 +470,12 @@ class ReservationsScreen(MDScreen):
             self.scroll.size_hint_y = None
             self.scroll.height = 0
             self.scroll.disabled = True
+
+        # Flexible bottom spacer anchors confirmation dialog to top
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
 
         self.confirm_modal = MDCard(
             orientation="vertical",
@@ -526,7 +542,11 @@ class ReservationsScreen(MDScreen):
         self.refresh_reservations()
 
     def _hide_modals(self):
-        """Cleanly remove dynamic modal cards and restore scrollable list."""
+        """Cleanly remove dynamic modal cards, release bottom spacer, and restore scrollable list."""
+        if hasattr(self, "bottom_spacer") and self.bottom_spacer:
+            if self.bottom_spacer in self.root_layout.children:
+                self.root_layout.remove_widget(self.bottom_spacer)
+            self.bottom_spacer = None
         if hasattr(self, "scroll") and self.scroll:
             self.scroll.opacity = 1
             self.scroll.size_hint_y = 1

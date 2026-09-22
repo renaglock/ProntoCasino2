@@ -119,6 +119,20 @@ class TestDomainServices(unittest.TestCase):
         self.assertGreater(report["total_collected"], 0)
         self.assertGreater(len(report["top_dishes"]), 0)
 
+    def test_category_color_coherence(self):
+        from punto_casino.core.config import CATEGORY_PALETTE, get_category_style
+
+        for cat in ["Menú Normal", "Menú Ejecutivo", "Menú Hipocalórico", "Comidas Rápidas", "Bebidas"]:
+            style = get_category_style(cat)
+            self.assertIn("hex", style)
+            self.assertIn("rgba", style)
+            self.assertIn("label", style)
+            self.assertTrue(style["hex"].startswith("#"))
+            self.assertEqual(len(style["rgba"]), 4)
+
+        unknown = get_category_style("Categoría Inexistente")
+        self.assertEqual(unknown["hex"], "#64748B")
+
 
 if __name__ == "__main__":
     unittest.main()
