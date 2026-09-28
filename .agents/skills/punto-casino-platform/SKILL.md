@@ -9,7 +9,7 @@ description: >-
 
 # Punto Casino Platform Engineering Skill (Enterprise Standard)
 
-This skill provides the comprehensive engineering blueprint, domain rules, architectural standards, and operational procedures for building the **Punto Casino Universidad** platform — a mobile ordering, reservation, and cashier pickup solution designed for Chilean higher education institutions (universities, professional institutes, and technical training centers) using **Python 3.10+** and **KivyMD 2.0**, based on [`docs/requerimientos.md`](file:///home/renato/Dev/DesarrolloMovil/docs/requerimientos.md) and [`docs/plan_expansion_universidades_chile/README.md`](file:///home/renato/Dev/DesarrolloMovil/docs/plan_expansion_universidades_chile/README.md).
+This skill provides the comprehensive engineering blueprint, domain rules, architectural standards, and operational procedures for building the **Punto Casino Universidad** platform — a mobile ordering, reservation, and cashier pickup solution designed for Chilean higher education institutions (universities, professional institutes, and technical training centers) using **Python 3.10+** and **KivyMD 2.0**, based on [`docs/requerimientos.md`](file:///e:/Rena/ProntoCasino2/docs/requerimientos.md) and [`docs/plan_expansion_universidades_chile/README.md`](file:///e:/Rena/ProntoCasino2/docs/plan_expansion_universidades_chile/README.md).
 
 ---
 
@@ -150,7 +150,7 @@ When proposing changes, format the proposal using the following structure:
 
 ## 5. Mandatory Feature Documentation Protocol (`docs/<feature_name>/`)
 
-Every feature must maintain comprehensive technical documentation inside `docs/<feature_name>/README.md`, strictly following the structure established in [`docs/TEMPLATE_FEATURE.md`](file:///home/renato/Dev/DesarrolloMovil/docs/TEMPLATE_FEATURE.md):
+Every feature must maintain comprehensive technical documentation inside `docs/<feature_name>/README.md`, strictly following the structure established in [`docs/TEMPLATE_FEATURE.md`](file:///e:/Rena/ProntoCasino2/docs/TEMPLATE_FEATURE.md):
 
 ```text
 docs/
@@ -165,7 +165,7 @@ docs/
 
 ## 6. Git Discipline & Safety Guidelines
 
-In strict accordance with Section 7 of [`docs/requerimientos.md`](file:///home/renato/Dev/DesarrolloMovil/docs/requerimientos.md):
+In strict accordance with Section 7 of [`docs/requerimientos.md`](file:///e:/Rena/ProntoCasino2/docs/requerimientos.md):
 - **Branch Target**: Work on feature branches or `develop`. Never push broken states directly to `main`.
 - **Commit Messages**: Conventional commits format (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `perf:`).
 - **Pristine Environment**: Keep `.gitignore` updated to exclude `kivy_env/`, `*.pyc`, `__pycache__/`, `.buildozer/`, and `.DS_Store`.
