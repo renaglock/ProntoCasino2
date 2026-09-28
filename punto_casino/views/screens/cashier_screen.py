@@ -5,6 +5,7 @@ from kivy.graphics.texture import Texture
 from kivy.metrics import dp
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
 from kivymd.uix.card import MDCard
@@ -41,6 +42,7 @@ class CashierScreen(MDScreen):
         self.status_label = None
         self.scanner_modal = None
         self.confirm_modal = None
+        self.bottom_spacer = None
 
         # Live OpenCV QR Scanner state
         self._camera = None
@@ -149,10 +151,14 @@ class CashierScreen(MDScreen):
 
         self.add_widget(self.root_layout)
 
-    def on_enter(self):
-        """Refresh orders when cashier screen is entered."""
+    def on_pre_enter(self):
+        """Prepare and lay out orders BEFORE transition starts to guarantee 60fps fluidity."""
         self._hide_modals()
         self.refresh_orders()
+
+    def on_enter(self):
+        """Screen transition completed; no-op to prevent redundant re-rendering."""
+        pass
 
     def _switch_tab(self, tab_name: str):
         self.current_tab = tab_name
@@ -403,6 +409,13 @@ class CashierScreen(MDScreen):
             self.scroll.height = 0
             self.scroll.disabled = True
 
+        # Flexible bottom spacer ensures modal and header are anchored firmly to the top,
+        # leaving all unused dead space at the bottom of the screen.
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
         self.scanner_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
@@ -420,6 +433,7 @@ class CashierScreen(MDScreen):
         title = MDLabel(
             text="[b][color=#0A3871]Lector QR y Cobro en Caja[/color][/b]",
             markup=True,
+            halign="center",
             font_style="Title",
             role="medium",
             size_hint_y=None,
@@ -701,6 +715,13 @@ class CashierScreen(MDScreen):
             self.scroll.height = 0
             self.scroll.disabled = True
 
+        # Flexible bottom spacer ensures modal and header are anchored firmly to the top,
+        # leaving all unused dead space at the bottom of the screen.
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
@@ -717,6 +738,7 @@ class CashierScreen(MDScreen):
         c_title = MDLabel(
             text="[b][color=#0A3871]Cobrar y Entregar Comanda[/color][/b]",
             markup=True,
+            halign="center",
             font_style="Title",
             role="medium",
             size_hint_y=None,
@@ -725,6 +747,7 @@ class CashierScreen(MDScreen):
         c_msg = MDLabel(
             text=f"¿Cobrar [b]{format_currency(order.total)}[/b] a [b]{order.customer_name}[/b] (Comanda #{order.comanda_number}) y registrar entrega?",
             markup=True,
+            halign="center",
             font_style="Body",
             role="small",
             size_hint_y=None,
@@ -734,7 +757,7 @@ class CashierScreen(MDScreen):
         btn_cancel = create_button(
             text="Cancelar",
             style="tonal",
-            size_hint=(0.4, None),
+            size_hint=(0.5, None),
             height=dp(34),
             on_release=lambda x: self._hide_modals(),
         )
@@ -743,7 +766,7 @@ class CashierScreen(MDScreen):
             icon="cash-register",
             icon_size=dp(14),
             style="filled",
-            size_hint=(0.6, None),
+            size_hint=(0.5, None),
             height=dp(34),
             on_release=lambda x, o=order: self._execute_direct_charge(o),
         )
@@ -787,6 +810,10 @@ class CashierScreen(MDScreen):
 
     def _hide_modals(self):
         self._stop_camera()
+        if hasattr(self, "bottom_spacer") and self.bottom_spacer:
+            if self.bottom_spacer in self.root_layout.children:
+                self.root_layout.remove_widget(self.bottom_spacer)
+            self.bottom_spacer = None
         if hasattr(self, "scroll") and self.scroll:
             self.scroll.opacity = 1
             self.scroll.size_hint_y = 1
