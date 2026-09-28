@@ -3,6 +3,7 @@
 from typing import Optional
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
 from kivymd.uix.card import MDCard
@@ -59,6 +60,8 @@ class AdminScreen(MDScreen):
         self.confirm_modal = None
         self.category_modal = None
         self.audit_modal = None
+        self.bottom_spacer = None
+        self.list_container = None
 
         # Order history audit & filter state
         self.history_filter = "ALL"  # "ALL", "DELIVERED", "ACTIVE", "CANCELLED"
@@ -103,6 +106,7 @@ class AdminScreen(MDScreen):
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(8),
         )
+        self.list_container = container
 
         # 1. Header with Title and '+ Nuevo Plato' Button
         title_row = MDBoxLayout(
@@ -1012,6 +1016,18 @@ class AdminScreen(MDScreen):
         """Display detailed accounting and audit modal for a specific comanda."""
         self._hide_modals()
 
+        if hasattr(self, "list_container") and self.list_container:
+            self.list_container.opacity = 0
+            self.list_container.size_hint_y = None
+            self.list_container.height = 0
+            self.list_container.disabled = True
+
+        # Flexible bottom spacer ensures modal is anchored firmly to the top
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
         st_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
         st_color = ORDER_STATUS_COLORS.get(order.status, "#64748B")
         is_active = order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)
@@ -1698,6 +1714,17 @@ class AdminScreen(MDScreen):
     def _ask_delete_confirmation(self, prod: Product):
         self._hide_confirm_modal()
 
+        if hasattr(self, "list_container") and self.list_container:
+            self.list_container.opacity = 0
+            self.list_container.size_hint_y = None
+            self.list_container.height = 0
+            self.list_container.disabled = True
+
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
@@ -1759,6 +1786,14 @@ class AdminScreen(MDScreen):
         self._hide_modals()
 
     def _hide_modals(self):
+        if hasattr(self, "bottom_spacer") and self.bottom_spacer:
+            if self.bottom_spacer in self.root_layout.children:
+                self.root_layout.remove_widget(self.bottom_spacer)
+            self.bottom_spacer = None
+        if hasattr(self, "list_container") and self.list_container:
+            self.list_container.opacity = 1
+            self.list_container.size_hint_y = 1
+            self.list_container.disabled = False
         if hasattr(self, "category_modal") and self.category_modal and self.category_modal in self.root_layout.children:
             self.root_layout.remove_widget(self.category_modal)
             self.category_modal = None

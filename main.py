@@ -270,10 +270,12 @@ class ProntoCasinoApp(MDApp):
     def navigate_to(self, screen_name: str):
         if screen_name in self.sm.screen_names:
             was_already_active = self.sm.current == screen_name
+            target = self.sm.get_screen(screen_name)
+            if hasattr(target, "on_pre_enter"):
+                target.on_pre_enter()
             self.sm.current = screen_name
             self._highlight_active_nav_btn(screen_name)
-            if was_already_active:
-                target = self.sm.get_screen(screen_name)
+            if was_already_active and hasattr(target, "on_enter"):
                 target.on_enter()
 
 
