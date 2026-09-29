@@ -1,7 +1,7 @@
 """Cashier service managing numbered comanda queues, approvals, and inventory toggling."""
 
 from typing import List, Optional
-from punto_casino.models.order import Order, OrderStatus
+from punto_casino.models.order import Order, OrderStatus, PaymentMethod, PAYMENT_METHOD_LABELS
 from punto_casino.repositories.product_repository import InMemoryProductRepository
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
@@ -82,8 +82,8 @@ class CashierService:
         self.order_repo.update_status(order_id, OrderStatus.DELIVERED)
         return self.order_repo.get_by_id(order_id)
 
-    def process_qr_payment(self, qr_input: str):
-        """Verify QR code payload or order ID, execute checkout in cashier, and mark as DELIVERED."""
+    def process_qr_payment(self, qr_input: str, payment_method: Optional[str] = None):
+        """Verify QR code payload or order ID, process payment if pending, and mark as DELIVERED."""
         from punto_casino.utils.qr_generator import parse_pickup_payload
 
         clean_input = qr_input.strip()
@@ -100,8 +100,17 @@ class CashierService:
             return False, f"La comanda #{order.comanda_number} fue cancelada por el cliente.", order
 
         if order.status == OrderStatus.DELIVERED:
-            return False, f"La comanda #{order.comanda_number} ya fue cobrada y entregada.", order
+            return False, f"La comanda #{order.comanda_number} ya fue entregada anteriormente.", order
+
+        # If not paid yet (e.g. meson cash/POS), mark paid now
+        if not order.is_paid:
+            order.is_paid = True
+            if payment_method:
+                order.payment_method = payment_method
+            else:
+                order.payment_method = PaymentMethod.EFECTIVO_POS.value
 
         self.order_repo.update_status(order.id_pedido, OrderStatus.DELIVERED)
         updated_order = self.order_repo.get_by_id(order.id_pedido)
-        return True, f"Comanda #{order.comanda_number} cobrada (${order.total:,} CLP) y entregada exitosamente.", updated_order
+        pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
+        return True, f"Comanda #{order.comanda_number} entregada exitosamente ({pay_lbl}).", updated_order

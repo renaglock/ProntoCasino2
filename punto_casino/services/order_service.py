@@ -2,7 +2,7 @@
 
 import uuid
 from typing import Any, Dict, List, Optional
-from punto_casino.models.order import Order, OrderItem, OrderStatus
+from punto_casino.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from punto_casino.models.user import UserRole
 from punto_casino.repositories.product_repository import InMemoryProductRepository
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
@@ -83,8 +83,12 @@ class OrderService:
         """Return total count of all items currently in cart."""
         return sum(self._cart.values())
 
-    def checkout(self) -> Order:
-        """Create numbered comanda, deduct student wallet, reserve stock, and persist order."""
+    def checkout(
+        self,
+        payment_method: str = PaymentMethod.BAES_JUNAEB.value,
+        is_paid: bool = True,
+    ) -> Order:
+        """Create numbered comanda, process upfront mobile payment gateway, reserve stock, and persist order."""
         items = self.get_cart_items()
         if not items:
             raise ValueError("El carrito está vacío. Agrega platos antes de reservar.")
@@ -92,8 +96,8 @@ class OrderService:
         total = self.get_cart_total()
         current_user = self.auth_service.current_user
 
-        # Deduct wallet balance if student has positive balance
-        if current_user.role == UserRole.CLIENT and current_user.balance >= total:
+        # Deduct wallet balance if student paid with internal student wallet/balance
+        if payment_method == PaymentMethod.BECA_INTERNA.value and current_user.balance >= total:
             self.auth_service.deduct_balance(total)
 
         # Deduct temporary stock
@@ -108,6 +112,11 @@ class OrderService:
         order_id = f"PED-{uuid.uuid4().hex[:6].upper()}"
         pickup_payload = generate_pickup_payload(order_id, f"Comanda #{comanda_num} - {current_user.name}")
 
+        # When prepaid (is_paid=True), order status is CONFIRMED ("En Preparación (Pagado)") immediately,
+        # ensuring the kitchen prepares food with guaranteed payment and zero casino losses.
+        # If paying in cash/POS at meson (is_paid=False), status remains PENDING until paid.
+        initial_status = OrderStatus.CONFIRMED if is_paid else OrderStatus.PENDING
+
         order = Order(
             id_pedido=order_id,
             comanda_number=comanda_num,
@@ -115,7 +124,9 @@ class OrderService:
             customer_id=current_user.id_usuario,
             customer_role=current_user.role.value,
             items=items,
-            status=OrderStatus.PENDING,
+            status=initial_status,
+            payment_method=payment_method,
+            is_paid=is_paid,
             pickup_qr=pickup_payload,
         )
 

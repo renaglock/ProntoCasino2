@@ -1,14 +1,19 @@
-"""Responsive product catalog matching PRONTO CASINO UCT wireframe with clean layout, vibrant offers, and high contrast."""
-
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButtonIcon
 from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
+from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.screen import MDScreen
 
 from punto_casino.core.config import config, get_category_style
+from punto_casino.models.order import (
+    PaymentMethod,
+    PAYMENT_METHOD_LABELS,
+    PAYMENT_METHOD_ICONS,
+)
 from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
@@ -26,11 +31,13 @@ from punto_casino.views.components.ui_elements import (
 class CatalogScreen(MDScreen):
     """Product catalog with responsive card layout, category filtering, vibrant offer cards, and student/guest balance."""
 
-    def __init__(self, order_service: OrderService, auth_service: AuthService, **kwargs):
+    def __init__(self, order_service: OrderService, auth_service: AuthService, on_navigate=None, **kwargs):
         super().__init__(**kwargs)
         self.order_service = order_service
         self.auth_service = auth_service
+        self.on_navigate = on_navigate
         self.selected_category = "Todos"
+        self.selected_payment_method = PaymentMethod.BAES_JUNAEB.value
         self._loaded_category = None
         self._is_dirty = True
 
@@ -41,6 +48,8 @@ class CatalogScreen(MDScreen):
         self.products_container = None
         self.cat_box = None
         self.confirm_modal = None
+        self.payment_modal = None
+        self.bottom_spacer = None
         self.desc_label = None
 
         self._build_ui()
@@ -438,10 +447,10 @@ class CatalogScreen(MDScreen):
             self.cart_label.text = f"Carrito: {count} ítem(s) - Total: {format_currency(total)}"
 
     def _ask_reservation_confirmation(self):
-        """Display action confirmation dialog."""
+        """Display cart confirmation dialog with 'Pagar' button leading to payment gateway."""
         items = self.order_service.get_cart_items()
         if not items:
-            self.status_label.text = "[color=#EF4444]El carrito está vacío. Agrega platos antes de reservar.[/color]"
+            self.status_label.text = "[color=#EF4444]El carrito está vacío. Agrega platos antes de pagar.[/color]"
             return
 
         total = self.order_service.get_cart_total()
@@ -452,9 +461,9 @@ class CatalogScreen(MDScreen):
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(140),
-            padding=[dp(14), dp(12), dp(14), dp(12)],
-            spacing=dp(6),
+            height=dp(150),
+            padding=[dp(16), dp(12), dp(16), dp(12)],
+            spacing=dp(8),
             style="outlined",
             theme_bg_color="Custom",
             md_bg_color=[1, 1, 1, 1],
@@ -463,39 +472,42 @@ class CatalogScreen(MDScreen):
             elevation=0,
         )
         modal_title = MDLabel(
-            text="[color=#0A3871][b]Confirmar Reserva de Comanda[/b][/color]",
+            text="[color=#0A3871][b]Confirmar Carrito de Comanda[/b][/color]",
             markup=True,
             font_style="Title",
             role="small",
             size_hint_y=None,
             height=dp(22),
+            halign="center",
         )
         modal_msg = MDLabel(
-            text=f"Total: {format_currency(total)} | Titular: {user.name}\n¿Confirmar y enviar a cocina en caja?",
+            text=f"Total: [b]{format_currency(total)}[/b] | Titular: [b]{user.name}[/b]\nPaga ahora para preparar en cocina y retirar sin hacer filas.",
             size_hint_y=None,
-            height=dp(36),
+            height=dp(38),
             font_style="Body",
             role="small",
+            markup=True,
+            halign="center",
         )
         modal_btns = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(36))
 
         cancel_btn = create_button(
             text="Cancelar",
             style="tonal",
-            size_hint=(0.5, None),
+            size_hint=(0.48, None),
             height=dp(34),
             on_release=lambda x: self._hide_modal(),
         )
-        confirm_btn = create_button(
-            text="Confirmar",
-            icon="check",
-            style="filled",
-            size_hint=(0.5, None),
+        pay_btn = create_button(
+            text="Pagar",
+            icon="credit-card",
+            style="offer",
+            size_hint=(0.52, None),
             height=dp(34),
-            on_release=lambda x: self._execute_reservation(),
+            on_release=lambda x: self._show_payment_gateway_modal(),
         )
         modal_btns.add_widget(cancel_btn)
-        modal_btns.add_widget(confirm_btn)
+        modal_btns.add_widget(pay_btn)
 
         self.confirm_modal.add_widget(modal_title)
         self.confirm_modal.add_widget(modal_msg)
@@ -503,16 +515,251 @@ class CatalogScreen(MDScreen):
 
         self.root_layout.add_widget(self.confirm_modal, index=2)
 
+    def _show_payment_gateway_modal(self):
+        """Display Chilean higher-ed payment gateway conforming to Punto 4 of Plan de Expansión."""
+        self._hide_modal()
+
+        items = self.order_service.get_cart_items()
+        if not items:
+            self.status_label.text = "[color=#EF4444]El carrito está vacío.[/color]"
+            return
+
+        total = self.order_service.get_cart_total()
+
+        # Temporarily hide scroll to cleanly anchor payment modal at top with bottom spacer
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 0
+            self.scroll.size_hint_y = None
+            self.scroll.height = 0
+            self.scroll.disabled = True
+
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
+        self.payment_modal = MDCard(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(360),
+            padding=[dp(16), dp(12), dp(16), dp(12)],
+            spacing=dp(6),
+            style="outlined",
+            theme_bg_color="Custom",
+            md_bg_color=[1.0, 1.0, 1.0, 1.0],
+            radius=[dp(16), dp(16), dp(16), dp(16)],
+            line_color=[0.04, 0.22, 0.44, 0.4],
+            elevation=0,
+        )
+
+        # 1. Header
+        p_title = MDLabel(
+            text="[b][color=#0A3871]Pasarela de Pago Seguro UCT[/color][/b]",
+            markup=True,
+            halign="center",
+            font_style="Title",
+            role="medium",
+            size_hint_y=None,
+            height=dp(24),
+        )
+        p_amount = MDLabel(
+            text=f"Total a pagar: [b][color=#0288D1]{format_currency(total)}[/color][/b]",
+            markup=True,
+            halign="center",
+            font_style="Title",
+            role="small",
+            size_hint_y=None,
+            height=dp(20),
+        )
+        p_subtitle = MDLabel(
+            text="[color=#64748B]Selecciona tu medio de pago:[/color]",
+            markup=True,
+            halign="center",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(18),
+        )
+        self.payment_modal.add_widget(p_title)
+        self.payment_modal.add_widget(p_amount)
+        self.payment_modal.add_widget(p_subtitle)
+
+        # 2. Options List
+        options = [
+            (
+                PaymentMethod.BAES_JUNAEB.value,
+                "Beca BAES",
+                "Edenred y Pluxee Sodexo",
+                "school",
+            ),
+            (
+                PaymentMethod.WEBPAY_PLUS.value,
+                "Webpay Plus",
+                "Tarjetas de débito, crédito y CuentaRUT",
+                "credit-card",
+            ),
+            (
+                PaymentMethod.FINTOC_KHIPU.value,
+                "Transferencia Bancaria",
+                "Fintoc y Khipu directo",
+                "bank-transfer",
+            ),
+            (
+                PaymentMethod.BECA_INTERNA.value,
+                "Beca DAE o Mesón",
+                "Convenio institucional o pago en caja",
+                "card-account-details-star",
+            ),
+        ]
+
+        self.options_container = MDBoxLayout(
+            orientation="vertical",
+            spacing=dp(5),
+            size_hint_y=None,
+            height=dp(205),
+        )
+
+        for method_val, name, desc, icon_name in options:
+            is_active = (self.selected_payment_method == method_val)
+            card_opt = self._build_payment_option_card(method_val, name, desc, icon_name, is_active)
+            self.options_container.add_widget(card_opt)
+
+        self.payment_modal.add_widget(self.options_container)
+
+        # 3. Actions Row
+        actions_row = MDBoxLayout(
+            orientation="horizontal",
+            spacing=dp(8),
+            size_hint_y=None,
+            height=dp(36),
+        )
+        btn_back = create_button(
+            text="Volver",
+            style="tonal",
+            size_hint=(0.35, None),
+            height=dp(36),
+            on_release=lambda x: self._hide_modal(),
+        )
+        btn_pay = create_button(
+            text=f"Pagar {format_currency(total)}",
+            icon="credit-card-check",
+            style="offer",
+            size_hint=(0.65, None),
+            height=dp(36),
+            on_release=lambda x: self._execute_payment(),
+        )
+        actions_row.add_widget(btn_back)
+        actions_row.add_widget(btn_pay)
+        self.payment_modal.add_widget(actions_row)
+
+        self.root_layout.add_widget(self.payment_modal, index=1)
+
+    def _build_payment_option_card(self, method_val: str, name: str, desc: str, icon_name: str, is_active: bool) -> MDCard:
+        bg_col = [0.90, 0.94, 0.98, 1.0] if is_active else [1.0, 1.0, 1.0, 1.0]
+        border_col = [0.04, 0.22, 0.44, 0.9] if is_active else [0.88, 0.92, 0.96, 1.0]
+
+        card = MDCard(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(46),
+            padding=[dp(10), dp(4), dp(10), dp(4)],
+            spacing=dp(8),
+            style="outlined",
+            theme_bg_color="Custom",
+            md_bg_color=bg_col,
+            radius=[dp(10), dp(10), dp(10), dp(10)],
+            line_color=border_col,
+            elevation=0,
+            on_release=lambda x, m=method_val: self._select_payment_method(m),
+        )
+
+        icon_box = MDBoxLayout(size_hint=(None, 1), width=dp(28))
+        icon = MDIcon(
+            icon=icon_name,
+            theme_icon_color="Custom",
+            icon_color=[0.04, 0.22, 0.44, 1.0] if is_active else [0.39, 0.45, 0.55, 1.0],
+            size_hint=(None, None),
+            size=(dp(20), dp(20)),
+            pos_hint={"center_y": 0.5},
+        )
+        icon_box.add_widget(icon)
+
+        text_box = MDBoxLayout(orientation="vertical", size_hint=(1, 1), spacing=dp(1))
+        title_lbl = MDLabel(
+            text=f"[b][color=#0A3871]{name}[/color][/b]" if is_active else f"[color=#1E293B]{name}[/color]",
+            markup=True,
+            font_style="Label",
+            role="large",
+            shorten=True,
+            shorten_from="right",
+            size_hint_y=None,
+            height=dp(18),
+        )
+        desc_lbl = MDLabel(
+            text=f"[color=#64748B]{desc}[/color]",
+            markup=True,
+            font_style="Body",
+            role="small",
+            shorten=True,
+            shorten_from="right",
+            size_hint_y=None,
+            height=dp(14),
+        )
+        text_box.add_widget(title_lbl)
+        text_box.add_widget(desc_lbl)
+
+        check_box = MDBoxLayout(size_hint=(None, 1), width=dp(24))
+        if is_active:
+            check_icon = MDIcon(
+                icon="check-circle",
+                theme_icon_color="Custom",
+                icon_color=[0.06, 0.65, 0.45, 1.0],
+                size_hint=(None, None),
+                size=(dp(18), dp(18)),
+                pos_hint={"center_y": 0.5},
+            )
+            check_box.add_widget(check_icon)
+
+        card.add_widget(icon_box)
+        card.add_widget(text_box)
+        card.add_widget(check_box)
+        return card
+
+    def _select_payment_method(self, method_val: str):
+        self.selected_payment_method = method_val
+        self._show_payment_gateway_modal()
+
+    def _execute_payment(self):
+        self._hide_modal()
+        try:
+            pay_method = self.selected_payment_method
+            pay_label = PAYMENT_METHOD_LABELS.get(pay_method, pay_method)
+            order = self.order_service.checkout(
+                payment_method=pay_method,
+                is_paid=True,
+            )
+            self.status_label.text = (
+                f"[color=#10B981]✓ ¡Pago exitoso con {pay_label}! "
+                f"Comanda #{order.comanda_number} en preparación. Retira con tu QR.[/color]"
+            )
+            self.refresh_catalog()
+            if self.on_navigate:
+                Clock.schedule_once(lambda dt: self.on_navigate("reservations"), 0.5)
+        except ValueError as e:
+            self.status_label.text = f"[color=#EF4444]Error: {str(e)}[/color]"
+
     def _hide_modal(self):
+        if hasattr(self, "bottom_spacer") and self.bottom_spacer:
+            if self.bottom_spacer in self.root_layout.children:
+                self.root_layout.remove_widget(self.bottom_spacer)
+            self.bottom_spacer = None
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 1
+            self.scroll.size_hint_y = 1
+            self.scroll.disabled = False
         if self.confirm_modal and self.confirm_modal in self.root_layout.children:
             self.root_layout.remove_widget(self.confirm_modal)
             self.confirm_modal = None
-
-    def _execute_reservation(self):
-        self._hide_modal()
-        try:
-            order = self.order_service.checkout()
-            self.status_label.text = f"[color=#10B981]¡Éxito! Comanda #{order.comanda_number} reservada.[/color]"
-            self.refresh_catalog()
-        except ValueError as e:
-            self.status_label.text = f"[color=#EF4444]Error: {str(e)}[/color]"
+        if self.payment_modal and self.payment_modal in self.root_layout.children:
+            self.root_layout.remove_widget(self.payment_modal)
+            self.payment_modal = None

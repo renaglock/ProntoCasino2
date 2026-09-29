@@ -17,7 +17,14 @@ from kivymd.uix.textfield import (
     MDTextFieldLeadingIcon,
 )
 
-from punto_casino.models.order import Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
+from punto_casino.models.order import (
+    Order,
+    OrderStatus,
+    ORDER_STATUS_LABELS,
+    ORDER_STATUS_COLORS,
+    PaymentMethod,
+    PAYMENT_METHOD_LABELS,
+)
 from punto_casino.services.cashier_service import CashierService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.utils.qr_generator import (
@@ -29,7 +36,7 @@ from punto_casino.views.components.ui_elements import create_button, VIBRANT_ORA
 
 
 class CashierScreen(MDScreen):
-    """Cashier dashboard managing numbered comandas, 2-tier action buttons, live OpenCV QR scanner, and shift history."""
+    """Cashier dashboard managing numbered comandas, express QR delivery, POS checkout, and shift history."""
 
     def __init__(self, cashier_service: CashierService, on_navigate, **kwargs):
         super().__init__(**kwargs)
@@ -37,6 +44,7 @@ class CashierScreen(MDScreen):
         self.on_navigate = on_navigate
 
         self.current_tab = "queue"  # "queue" or "history"
+        self.selected_pos_payment = PaymentMethod.WEBPAY_PLUS.value
         self.root_layout = None
         self.orders_container = None
         self.status_label = None
@@ -213,18 +221,15 @@ class CashierScreen(MDScreen):
             self.orders_container.add_widget(card)
 
     def _build_comanda_card(self, order: Order, is_history: bool = False) -> MDCard:
-        status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-        status_color = ORDER_STATUS_COLORS.get(order.status, "#D97706")
-
-        if not is_history:
-            if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
-                card_h = dp(175)
-            elif order.status == OrderStatus.READY:
-                card_h = dp(140)
-            else:
-                card_h = dp(98)
+        pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
+        if order.is_paid:
+            status_text = f"✓ Pagado • {pay_lbl}"
+            status_color = "#10B981"
         else:
-            card_h = dp(98)
+            status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+            status_color = ORDER_STATUS_COLORS.get(order.status, "#D97706")
+
+        card_h = dp(136) if not is_history else dp(98)
 
         card = MDCard(
             orientation="vertical",
@@ -270,7 +275,7 @@ class CashierScreen(MDScreen):
             markup=True,
             font_style="Body",
             role="small",
-            size_hint_x=0.58,
+            size_hint_x=0.55,
             shorten=True,
             shorten_from="right",
         )
@@ -280,7 +285,7 @@ class CashierScreen(MDScreen):
             halign="right",
             font_style="Label",
             role="small",
-            size_hint_x=0.42,
+            size_hint_x=0.45,
             shorten=True,
             shorten_from="right",
         )
@@ -302,93 +307,54 @@ class CashierScreen(MDScreen):
         )
         card.add_widget(c_items)
 
-        # Active Queue Action Buttons (High contrast, ergonomic 2-tier layout)
-        if not is_history and order.status == OrderStatus.PENDING:
-            # Tier 1: Direct Charge Action (1-tap, no webcam required)
-            tier1_btn = create_button(
-                text="Cobrar y Entregar",
-                icon="cash-register",
-                style="filled",
-                size_hint=(1, None),
-                height=dp(34),
-                on_release=lambda x, o=order: self._ask_charge_comanda(o),
-            )
-            card.add_widget(tier1_btn)
-
-            # Tier 2: Kitchen Confirmation & Rejection
-            tier2_box = MDBoxLayout(
+        # Active Queue Action Buttons (Streamlined single tier, eliminates redundant kitchen confirm/ready steps)
+        if not is_history:
+            actions_box = MDBoxLayout(
                 orientation="horizontal",
                 spacing=dp(8),
                 size_hint_y=None,
-                height=dp(32),
-            )
-            conf_btn = create_button(
-                text="Confirmar Cocina",
-                icon="check",
-                style="success",
-                size_hint=(0.5, None),
-                height=dp(30),
-                on_release=lambda x, o=order: self._ask_confirm(o),
-            )
-            rej_btn = create_button(
-                text="Rechazar",
-                icon="close",
-                style="danger",
-                size_hint=(0.5, None),
-                height=dp(30),
-                on_release=lambda x, o=order: self._ask_reject(o),
-            )
-            tier2_box.add_widget(conf_btn)
-            tier2_box.add_widget(rej_btn)
-            card.add_widget(tier2_box)
-        elif not is_history and order.status == OrderStatus.CONFIRMED:
-            # Tier 1: Cashier can ALWAYS charge confirmed orders
-            tier1_btn = create_button(
-                text="Cobrar y Entregar",
-                icon="cash-register",
-                style="filled",
-                size_hint=(1, None),
                 height=dp(34),
-                on_release=lambda x, o=order: self._ask_charge_comanda(o),
             )
-            card.add_widget(tier1_btn)
+            if order.is_paid:
+                deliver_btn = create_button(
+                    text="Entregar Comanda",
+                    icon="check-circle",
+                    style="filled",
+                    size_hint=(0.65, None),
+                    height=dp(34),
+                    on_release=lambda x, o=order: self._ask_delivery_comanda(o),
+                )
+                scan_btn = create_button(
+                    text="Ver QR",
+                    icon="qrcode-scan",
+                    style="outlined",
+                    size_hint=(0.35, None),
+                    height=dp(34),
+                    on_release=lambda x, o=order: self._show_qr_scanner_modal(prefill_id=o.id_pedido),
+                )
+                actions_box.add_widget(deliver_btn)
+                actions_box.add_widget(scan_btn)
+            else:
+                charge_btn = create_button(
+                    text="Cobrar en Mesón",
+                    icon="cash-register",
+                    style="offer",
+                    size_hint=(0.65, None),
+                    height=dp(34),
+                    on_release=lambda x, o=order: self._ask_charge_comanda(o),
+                )
+                rej_btn = create_button(
+                    text="Rechazar",
+                    icon="close",
+                    style="danger",
+                    size_hint=(0.35, None),
+                    height=dp(34),
+                    on_release=lambda x, o=order: self._ask_reject(o),
+                )
+                actions_box.add_widget(charge_btn)
+                actions_box.add_widget(rej_btn)
 
-            # Tier 2: Mark ready in kitchen or open QR scanner
-            tier2_box = MDBoxLayout(
-                orientation="horizontal",
-                spacing=dp(8),
-                size_hint_y=None,
-                height=dp(32),
-            )
-            ready_btn = create_button(
-                text="Listo Cocina",
-                icon="check-all",
-                style="tonal",
-                size_hint=(0.5, None),
-                height=dp(30),
-                on_release=lambda x, o=order: self._mark_order_ready(o),
-            )
-            scan_btn = create_button(
-                text="Escanear QR",
-                icon="qrcode-scan",
-                style="outlined",
-                size_hint=(0.5, None),
-                height=dp(30),
-                on_release=lambda x, o=order: self._show_qr_scanner_modal(prefill_id=o.id_pedido),
-            )
-            tier2_box.add_widget(ready_btn)
-            tier2_box.add_widget(scan_btn)
-            card.add_widget(tier2_box)
-        elif not is_history and order.status == OrderStatus.READY:
-            ready_btn = create_button(
-                text="Cobrar y Entregar",
-                icon="cash-register",
-                style="filled",
-                size_hint=(1, None),
-                height=dp(34),
-                on_release=lambda x, o=order: self._ask_charge_comanda(o),
-            )
-            card.add_widget(ready_btn)
+            card.add_widget(actions_box)
 
         return card
 
@@ -685,19 +651,28 @@ class CashierScreen(MDScreen):
             self.scanner_feedback_lbl.text = f"[color=#EF4444]No existe orden con código {order_id}[/color]"
             return
 
-        status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-        self.scanner_feedback_lbl.text = (
-            f"[color=#10B981]Comanda #{order.comanda_number} ({order.customer_name}) - "
-            f"{format_currency(order.total)} [{status_text}][/color]"
-        )
+        pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
+        if order.is_paid:
+            self.scanner_feedback_lbl.text = (
+                f"[b][color=#10B981]✓ PAGADO • {pay_lbl}[/color][/b] - "
+                f"Comanda #{order.comanda_number} ({order.customer_name}) • {format_currency(order.total)}"
+            )
+        else:
+            self.scanner_feedback_lbl.text = (
+                f"[b][color=#D97706]Pendiente en Mesón ({format_currency(order.total)})[/color][/b] - "
+                f"Comanda #{order.comanda_number} ({order.customer_name})"
+            )
 
     def _on_execute_charge(self):
         val = self.qr_text_input.text.strip()
         if not val:
-            self.scanner_feedback_lbl.text = "[color=#EF4444]Ingresa un código de pedido.[/color]"
+            self.scanner_feedback_lbl.text = "[color=#EF4444]Ingresa un código de pedido o escanea QR.[/color]"
             return
 
-        success, msg, order = self.cashier_service.process_qr_payment(val)
+        success, msg, order = self.cashier_service.process_qr_payment(
+            val,
+            payment_method=self.selected_pos_payment,
+        )
         if success:
             self.status_label.text = f"[color=#10B981]{msg}[/color]"
             self._hide_modals()
@@ -705,8 +680,8 @@ class CashierScreen(MDScreen):
         else:
             self.scanner_feedback_lbl.text = f"[color=#EF4444]{msg}[/color]"
 
-    def _ask_charge_comanda(self, order: Order):
-        """Show clear confirmation modal to charge and deliver comanda immediately."""
+    def _ask_delivery_comanda(self, order: Order):
+        """Show 1-touch comanda delivery confirmation for prepaid orders."""
         self._hide_modals()
 
         if hasattr(self, "scroll") and self.scroll:
@@ -715,19 +690,19 @@ class CashierScreen(MDScreen):
             self.scroll.height = 0
             self.scroll.disabled = True
 
-        # Flexible bottom spacer ensures modal and header are anchored firmly to the top,
-        # leaving all unused dead space at the bottom of the screen.
         if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
             self.bottom_spacer = Widget(size_hint_y=1)
         if self.bottom_spacer not in self.root_layout.children:
             self.root_layout.add_widget(self.bottom_spacer, index=0)
+
+        pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
 
         self.confirm_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
             height=dp(175),
             padding=[dp(16), dp(12), dp(16), dp(12)],
-            spacing=dp(10),
+            spacing=dp(8),
             style="outlined",
             theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
@@ -736,7 +711,7 @@ class CashierScreen(MDScreen):
             elevation=0,
         )
         c_title = MDLabel(
-            text="[b][color=#0A3871]Cobrar y Entregar Comanda[/color][/b]",
+            text="[b][color=#0A3871]Entrega Express de Comanda[/color][/b]",
             markup=True,
             halign="center",
             font_style="Title",
@@ -745,33 +720,34 @@ class CashierScreen(MDScreen):
             height=dp(24),
         )
         c_msg = MDLabel(
-            text=f"¿Cobrar [b]{format_currency(order.total)}[/b] a [b]{order.customer_name}[/b] (Comanda #{order.comanda_number}) y registrar entrega?",
+            text=f"Comanda [b]#{order.comanda_number}[/b] • Cliente: [b]{order.customer_name}[/b]\n"
+                 f"Total: [b]{format_currency(order.total)}[/b] • [color=#10B981][b]✓ Pagado con {pay_lbl}[/b][/color]\n"
+                 f"¿Entregar productos al alumno en mesón?",
             markup=True,
             halign="center",
             font_style="Body",
             role="small",
             size_hint_y=None,
-            height=dp(40),
+            height=dp(48),
         )
         c_btns = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(36))
         btn_cancel = create_button(
             text="Cancelar",
             style="tonal",
-            size_hint=(0.5, None),
+            size_hint=(0.4, None),
             height=dp(34),
             on_release=lambda x: self._hide_modals(),
         )
-        btn_charge = create_button(
-            text="Confirmar Cobro",
-            icon="cash-register",
-            icon_size=dp(14),
+        btn_deliver = create_button(
+            text="Entregar Comanda",
+            icon="check-circle",
             style="filled",
-            size_hint=(0.5, None),
+            size_hint=(0.6, None),
             height=dp(34),
-            on_release=lambda x, o=order: self._execute_direct_charge(o),
+            on_release=lambda x, o=order: self._execute_direct_delivery(o),
         )
         c_btns.add_widget(btn_cancel)
-        c_btns.add_widget(btn_charge)
+        c_btns.add_widget(btn_deliver)
 
         self.confirm_modal.add_widget(c_title)
         self.confirm_modal.add_widget(c_msg)
@@ -779,8 +755,8 @@ class CashierScreen(MDScreen):
 
         self.root_layout.add_widget(self.confirm_modal, index=1)
 
-    def _execute_direct_charge(self, order: Order):
-        """Execute payment and mark order DELIVERED without requiring camera scanning."""
+    def _execute_direct_delivery(self, order: Order):
+        """Execute fast delivery for prepaid order."""
         self._hide_modals()
         success, msg, _ = self.cashier_service.process_qr_payment(order.id_pedido)
         if success:
@@ -789,17 +765,123 @@ class CashierScreen(MDScreen):
             self.status_label.text = f"[color=#EF4444]{msg}[/color]"
         self.refresh_orders()
 
-    def _mark_order_ready(self, order: Order):
-        """Mark comanda prepared and ready in kitchen."""
+    def _ask_charge_comanda(self, order: Order):
+        """Show POS charge modal with Chilean payment options (Webpay POS, BAES Edenred, Efectivo)."""
         self._hide_modals()
-        self.cashier_service.mark_ready(order.id_pedido)
-        self.status_label.text = f"[color=#10B981]Comanda #{order.comanda_number} lista para retiro en mesón.[/color]"
-        self.refresh_orders()
 
-    def _ask_confirm(self, order: Order):
+        if hasattr(self, "scroll") and self.scroll:
+            self.scroll.opacity = 0
+            self.scroll.size_hint_y = None
+            self.scroll.height = 0
+            self.scroll.disabled = True
+
+        if not hasattr(self, "bottom_spacer") or not self.bottom_spacer:
+            self.bottom_spacer = Widget(size_hint_y=1)
+        if self.bottom_spacer not in self.root_layout.children:
+            self.root_layout.add_widget(self.bottom_spacer, index=0)
+
+        self.confirm_modal = MDCard(
+            orientation="vertical",
+            size_hint_y=None,
+            height=dp(210),
+            padding=[dp(16), dp(12), dp(16), dp(12)],
+            spacing=dp(6),
+            style="outlined",
+            theme_bg_color="Custom",
+            md_bg_color=[1.0, 1.0, 1.0, 1.0],
+            radius=[dp(16), dp(16), dp(16), dp(16)],
+            line_color=[0.04, 0.22, 0.44, 0.4],
+            elevation=0,
+        )
+        c_title = MDLabel(
+            text="[b][color=#0A3871]Cobro en Mesón / Máquina POS[/color][/b]",
+            markup=True,
+            halign="center",
+            font_style="Title",
+            role="medium",
+            size_hint_y=None,
+            height=dp(24),
+        )
+        c_msg = MDLabel(
+            text=f"Total: [b]{format_currency(order.total)}[/b] • Cliente: [b]{order.customer_name}[/b] (Comanda #{order.comanda_number})\n"
+                 f"Selecciona medio de cobro en terminal de caja:",
+            markup=True,
+            halign="center",
+            font_style="Body",
+            role="small",
+            size_hint_y=None,
+            height=dp(36),
+        )
+        self.confirm_modal.add_widget(c_title)
+        self.confirm_modal.add_widget(c_msg)
+
+        # POS terminal selector buttons row
+        pos_opts_row = MDBoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(32))
+        btn_pos_card = create_button(
+            text="POS Débito",
+            icon="credit-card",
+            style="filled" if self.selected_pos_payment == PaymentMethod.WEBPAY_PLUS.value else "tonal",
+            size_hint=(0.33, None),
+            height=dp(30),
+            on_release=lambda x: self._set_pos_payment(order, PaymentMethod.WEBPAY_PLUS.value),
+        )
+        btn_pos_baes = create_button(
+            text="Beca BAES",
+            icon="school",
+            style="filled" if self.selected_pos_payment == PaymentMethod.BAES_JUNAEB.value else "tonal",
+            size_hint=(0.34, None),
+            height=dp(30),
+            on_release=lambda x: self._set_pos_payment(order, PaymentMethod.BAES_JUNAEB.value),
+        )
+        btn_pos_cash = create_button(
+            text="Efectivo",
+            icon="cash-register",
+            style="filled" if self.selected_pos_payment == PaymentMethod.EFECTIVO_POS.value else "tonal",
+            size_hint=(0.33, None),
+            height=dp(30),
+            on_release=lambda x: self._set_pos_payment(order, PaymentMethod.EFECTIVO_POS.value),
+        )
+        pos_opts_row.add_widget(btn_pos_card)
+        pos_opts_row.add_widget(btn_pos_baes)
+        pos_opts_row.add_widget(btn_pos_cash)
+        self.confirm_modal.add_widget(pos_opts_row)
+
+        c_btns = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(36))
+        btn_cancel = create_button(
+            text="Cancelar",
+            style="tonal",
+            size_hint=(0.35, None),
+            height=dp(34),
+            on_release=lambda x: self._hide_modals(),
+        )
+        btn_charge = create_button(
+            text="Cobrar y Entregar",
+            icon="cash-register",
+            style="offer",
+            size_hint=(0.65, None),
+            height=dp(34),
+            on_release=lambda x, o=order: self._execute_pos_charge(o),
+        )
+        c_btns.add_widget(btn_cancel)
+        c_btns.add_widget(btn_charge)
+
+        self.confirm_modal.add_widget(c_btns)
+        self.root_layout.add_widget(self.confirm_modal, index=1)
+
+    def _set_pos_payment(self, order: Order, method_val: str):
+        self.selected_pos_payment = method_val
+        self._ask_charge_comanda(order)
+
+    def _execute_pos_charge(self, order: Order):
         self._hide_modals()
-        self.cashier_service.confirm_order(order.id_pedido)
-        self.status_label.text = f"[color=#10B981]Comanda #{order.comanda_number} confirmada en cocina.[/color]"
+        success, msg, _ = self.cashier_service.process_qr_payment(
+            order.id_pedido,
+            payment_method=self.selected_pos_payment,
+        )
+        if success:
+            self.status_label.text = f"[color=#10B981]{msg}[/color]"
+        else:
+            self.status_label.text = f"[color=#EF4444]{msg}[/color]"
         self.refresh_orders()
 
     def _ask_reject(self, order: Order):
