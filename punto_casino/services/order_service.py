@@ -176,16 +176,28 @@ class OrderService:
         return self.get_accounting_report()
 
     def get_accounting_report(self) -> Dict[str, Any]:
-        """Generate comprehensive financial, category distribution, and top dishes report for administration."""
+        """Generate comprehensive financial report using NumPy statistical analytics and time.perf_counter()."""
+        import time
+        import numpy as np
+
+        perf_start = time.perf_counter()
         orders = self.order_repo.get_all()
         delivered = [o for o in orders if o.status == OrderStatus.DELIVERED]
         pending = [o for o in orders if o.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)]
         cancelled = [o for o in orders if o.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED)]
 
-        total_collected = sum(o.total for o in delivered)
+        # Convert delivered orders totals to a NumPy array for real statistical vector processing
+        delivered_totals = np.array([o.total for o in delivered], dtype=np.int64) if delivered else np.array([], dtype=np.int64)
+
+        total_collected = int(np.sum(delivered_totals)) if len(delivered_totals) > 0 else 0
         delivered_count = len(delivered)
         total_orders = len(orders)
-        average_ticket = (total_collected // delivered_count) if delivered_count > 0 else 0
+
+        # Real NumPy calculations: Mean, Median, and Standard Deviation of ticket amounts
+        average_ticket = int(np.mean(delivered_totals)) if len(delivered_totals) > 0 else 0
+        median_ticket = int(np.median(delivered_totals)) if len(delivered_totals) > 0 else 0
+        std_ticket = round(float(np.std(delivered_totals)), 1) if len(delivered_totals) > 0 else 0.0
+
         delivery_rate = round((delivered_count / total_orders * 100), 1) if total_orders > 0 else 0.0
 
         # Sales and volume by category (based on delivered orders)
@@ -238,6 +250,8 @@ class OrderService:
         for d in top_dishes:
             d["relative_pct"] = round((d["quantity"] / max_qty * 100), 1)
 
+        analytics_time_ms = round((time.perf_counter() - perf_start) * 1000, 2)
+
         return {
             "total_orders": total_orders,
             "delivered_count": delivered_count,
@@ -245,10 +259,13 @@ class OrderService:
             "cancelled_count": len(cancelled),
             "total_collected": total_collected,
             "average_ticket": average_ticket,
+            "median_ticket": median_ticket,
+            "std_ticket": std_ticket,
             "delivery_rate": delivery_rate,
             "total_items_sold": total_items_sold,
             "category_sales": category_list,
             "top_dishes": top_dishes[:5],
+            "analytics_time_ms": analytics_time_ms,
         }
 
 

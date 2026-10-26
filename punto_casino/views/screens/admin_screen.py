@@ -368,7 +368,7 @@ class AdminScreen(MDScreen):
         card = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(142),
+            height=dp(198),
             padding=[dp(14), dp(10), dp(14), dp(10)],
             spacing=dp(6),
             style="outlined",
@@ -418,8 +418,8 @@ class AdminScreen(MDScreen):
         tot_box.add_widget(tot_sub)
         card.add_widget(tot_box)
 
-        # 3 KPI Stats Row
-        kpi_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(48), spacing=dp(6))
+        # 3 KPI Stats Row (General)
+        kpi_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(6))
         p1 = self._build_mini_kpi_pill("Ticket Prom.", format_currency(report["average_ticket"]), "#0288D1")
         p2 = self._build_mini_kpi_pill("Efectividad", f"{report['delivery_rate']}%", "#10B981")
         p3 = self._build_mini_kpi_pill("Despachados", f"{report['total_items_sold']} un.", "#0A3871")
@@ -428,6 +428,17 @@ class AdminScreen(MDScreen):
         kpi_row.add_widget(p2)
         kpi_row.add_widget(p3)
         card.add_widget(kpi_row)
+
+        # 3 KPI Stats Row (NumPy & time.perf_counter Analytics)
+        kpi_row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(6))
+        p4 = self._build_mini_kpi_pill("Mediana (NumPy)", format_currency(report.get("median_ticket", 0)), "#7C3AED")
+        p5 = self._build_mini_kpi_pill("Desv. Est. (NumPy)", f"±{format_currency(int(report.get('std_ticket', 0)))}", "#D97706")
+        p6 = self._build_mini_kpi_pill("perf_counter()", f"{report.get('analytics_time_ms', 0)} ms", "#0D9488")
+
+        kpi_row2.add_widget(p4)
+        kpi_row2.add_widget(p5)
+        kpi_row2.add_widget(p6)
+        card.add_widget(kpi_row2)
 
         return card
 

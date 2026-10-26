@@ -1,16 +1,57 @@
-"""In-memory order repository."""
+"""JSON-backed order repository with persistent file storage and time.perf_counter() metrics."""
 
+import json
+import os
+import time
 from datetime import datetime
 from typing import Dict, List, Optional
 from punto_casino.models.order import Order, OrderStatus, PaymentMethod
 
 
-class InMemoryOrderRepository:
-    """Thread-safe in-memory order repository for active session."""
+class JsonOrderRepository:
+    """Thread-safe JSON-persisted order repository for orders and reservations."""
 
-    def __init__(self) -> None:
+    def __init__(self, file_path: Optional[str] = None) -> None:
         self._orders: Dict[str, Order] = {}
-        self._seed_sample_orders()
+        self.last_io_duration_ms: float = 0.0
+
+        if file_path is None:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            file_path = os.path.join(root_dir, "data", "pedidos.json")
+        self.file_path = file_path
+
+        self._load_or_seed()
+
+    def _load_or_seed(self) -> None:
+        """Loads orders from JSON file or seeds representative orders if missing."""
+        if os.path.exists(self.file_path):
+            self._load_from_json()
+        else:
+            self._seed_sample_orders()
+            self._save_to_json()
+
+    def _load_from_json(self) -> None:
+        """Reads orders from disk using safe context manager and json.load()."""
+        start_time = time.perf_counter()
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._orders = {item["id_pedido"]: Order.from_dict(item) for item in data}
+        except (json.JSONDecodeError, KeyError, FileNotFoundError):
+            self._seed_sample_orders()
+            self._save_to_json()
+        self.last_io_duration_ms = (time.perf_counter() - start_time) * 1000
+
+    def _save_to_json(self) -> None:
+        """Persists all orders to JSON file using with open and json.dump()."""
+        start_time = time.perf_counter()
+        dirname = os.path.dirname(self.file_path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        payload = [o.to_dict() for o in self._orders.values()]
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=4, ensure_ascii=False)
+        self.last_io_duration_ms = (time.perf_counter() - start_time) * 1000
 
     def _seed_sample_orders(self) -> None:
         """Seed representative session orders for accounting analytics and history testing."""
@@ -134,8 +175,9 @@ class InMemoryOrderRepository:
             self._orders[order.id_pedido] = order
 
     def add(self, order: Order) -> Order:
-        """Persist a new order."""
+        """Persist a new order and sync to disk JSON."""
         self._orders[order.id_pedido] = order
+        self._save_to_json()
         return order
 
     def get_by_id(self, order_id: str) -> Optional[Order]:
@@ -155,11 +197,15 @@ class InMemoryOrderRepository:
         return [o for o in self.get_all() if o.customer_name.lower() == customer_name.lower()]
 
     def update_status(self, order_id: str, new_status: OrderStatus) -> bool:
-        """Update lifecycle status of an order."""
+        """Update lifecycle status of an order and sync to disk JSON."""
         order = self._orders.get(order_id)
         if not order:
             return False
         order.status = new_status
         order.updated_at = datetime.now()
+        self._save_to_json()
         return True
 
+
+# Backward-compatible alias for existing imports
+InMemoryOrderRepository = JsonOrderRepository

@@ -177,6 +177,86 @@ class TestDomainServices(unittest.TestCase):
         updated = self.order_repo.get_by_id(order.id_pedido)
         self.assertEqual(updated.status, OrderStatus.DELIVERED)
 
+    def test_product_poo_serialization_to_dict(self):
+        prod = Product(
+            id_producto="TEST-01",
+            name="Cazuela Especial",
+            price=3900,
+            stock=10,
+            category="Menú Normal",
+            ingredients="Pollo, zapallo, choclo",
+        )
+        data = prod.to_dict()
+        self.assertIsInstance(data, dict)
+        self.assertEqual(data["id_producto"], "TEST-01")
+        self.assertEqual(data["price"], 3900)
+
+        # Reconstructed from dict
+        rebuilt = Product.from_dict(data)
+        self.assertEqual(rebuilt.id_producto, prod.id_producto)
+        self.assertEqual(rebuilt.name, prod.name)
+        self.assertEqual(rebuilt.price, prod.price)
+        self.assertEqual(rebuilt.ingredients, prod.ingredients)
+
+    def test_order_poo_serialization_to_dict(self):
+        from punto_casino.models.order import OrderItem, Order
+        order = Order(
+            id_pedido="PED-TEST99",
+            customer_name="Juan Perez",
+            comanda_number=205,
+            items=[OrderItem("TEST-01", "Cazuela Especial", 3900, 2)],
+            status=OrderStatus.CONFIRMED,
+            is_paid=True,
+        )
+        data = order.to_dict()
+        self.assertIsInstance(data, dict)
+        self.assertEqual(data["id_pedido"], "PED-TEST99")
+        self.assertEqual(data["total"], 7800)
+        self.assertIsInstance(data["items"], list)
+        self.assertIn("created_at", data)
+
+        rebuilt = Order.from_dict(data)
+        self.assertEqual(rebuilt.id_pedido, order.id_pedido)
+        self.assertEqual(rebuilt.customer_name, order.customer_name)
+        self.assertEqual(rebuilt.total, 7800)
+        self.assertEqual(rebuilt.status, OrderStatus.CONFIRMED)
+        self.assertTrue(rebuilt.is_paid)
+
+    def test_json_repositories_persistence(self):
+        test_prod_file = "test_productos.json"
+        test_order_file = "test_pedidos.json"
+        try:
+            from punto_casino.repositories.product_repository import JsonProductRepository
+            from punto_casino.repositories.order_repository import JsonOrderRepository
+
+            # 1. Product repo saves to JSON
+            repo_p = JsonProductRepository(file_path=test_prod_file)
+            self.assertTrue(os.path.exists(test_prod_file))
+            self.assertGreater(len(repo_p.get_all()), 0)
+            self.assertGreaterEqual(repo_p.last_io_duration_ms, 0.0)
+
+            # 2. Order repo saves to JSON
+            repo_o = JsonOrderRepository(file_path=test_order_file)
+            self.assertTrue(os.path.exists(test_order_file))
+            self.assertGreater(len(repo_o.get_all()), 0)
+            self.assertGreaterEqual(repo_o.last_io_duration_ms, 0.0)
+
+            # 3. Reload from JSON and check persistence
+            reloaded_p = JsonProductRepository(file_path=test_prod_file)
+            self.assertEqual(len(reloaded_p.get_all()), len(repo_p.get_all()))
+        finally:
+            for f in (test_prod_file, test_order_file):
+                if os.path.exists(f):
+                    os.remove(f)
+
+    def test_numpy_and_perf_counter_analytics(self):
+        report = self.order_service.get_accounting_report()
+        self.assertIn("median_ticket", report)
+        self.assertIn("std_ticket", report)
+        self.assertIn("analytics_time_ms", report)
+        self.assertGreater(report["median_ticket"], 0)
+        self.assertGreaterEqual(report["analytics_time_ms"], 0.0)
+
     def test_accounting_report_metrics(self):
         report = self.order_service.get_accounting_report()
         self.assertIn("total_collected", report)

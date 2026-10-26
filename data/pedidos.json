@@ -1,0 +1,630 @@
+[
+    {
+        "id_pedido": "PED-A81B21",
+        "customer_name": "Renato González",
+        "comanda_number": 101,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            },
+            {
+                "product_id": "BEB-01",
+                "name": "Jugo Natural de Naranja",
+                "unit_price": 1500,
+                "quantity": 1,
+                "subtotal": 1500
+            }
+        ],
+        "customer_id": "usr-est-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T12:17:40.612493",
+        "updated_at": "2026-10-26T12:37:40.612493",
+        "total": 6300,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-C44E89",
+        "customer_name": "Camila Silva",
+        "comanda_number": 102,
+        "items": [
+            {
+                "product_id": "MENU-02",
+                "name": "Escalopa Kaiser con Puré Rústico",
+                "unit_price": 6500,
+                "quantity": 1,
+                "subtotal": 6500
+            },
+            {
+                "product_id": "BEB-02",
+                "name": "Bebida en Lata 350ml",
+                "unit_price": 1200,
+                "quantity": 1,
+                "subtotal": 1200
+            }
+        ],
+        "customer_id": "usr-est-02",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T12:47:40.612493",
+        "updated_at": "2026-10-26T13:02:40.612493",
+        "total": 7700,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-D99F12",
+        "customer_name": "Prof. Matías Morales",
+        "comanda_number": 103,
+        "items": [
+            {
+                "product_id": "MENU-03",
+                "name": "Pollo a la Plancha con Arroz Integral",
+                "unit_price": 4600,
+                "quantity": 1,
+                "subtotal": 4600
+            },
+            {
+                "product_id": "BEB-01",
+                "name": "Jugo Natural de Naranja",
+                "unit_price": 1500,
+                "quantity": 1,
+                "subtotal": 1500
+            }
+        ],
+        "customer_id": "usr-prof-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "FINTOC_KHIPU",
+        "is_paid": true,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T13:22:40.612493",
+        "updated_at": "2026-10-26T13:37:40.612493",
+        "total": 6100,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-E12B74",
+        "customer_name": "Ignacio Tapia",
+        "comanda_number": 104,
+        "items": [
+            {
+                "product_id": "RAP-01",
+                "name": "Empanada de Pino al Horno",
+                "unit_price": 1200,
+                "quantity": 2,
+                "subtotal": 2400
+            },
+            {
+                "product_id": "BEB-02",
+                "name": "Bebida en Lata 350ml",
+                "unit_price": 1200,
+                "quantity": 1,
+                "subtotal": 1200
+            }
+        ],
+        "customer_id": "usr-est-03",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "BECA_INTERNA",
+        "is_paid": true,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T13:47:40.612493",
+        "updated_at": "2026-10-26T13:57:40.612493",
+        "total": 3600,
+        "total_items": 3
+    },
+    {
+        "id_pedido": "PED-F66D33",
+        "customer_name": "Valentina Rojas",
+        "comanda_number": 105,
+        "items": [
+            {
+                "product_id": "MENU-04",
+                "name": "Lasaña de Berenjenas y Espinaca",
+                "unit_price": 4500,
+                "quantity": 1,
+                "subtotal": 4500
+            }
+        ],
+        "customer_id": "usr-est-04",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T14:12:40.612493",
+        "updated_at": "2026-10-26T14:17:40.612493",
+        "total": 4500,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-G33A19",
+        "customer_name": "Sebastián Castro",
+        "comanda_number": 106,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "usr-est-05",
+        "customer_role": "CLIENT",
+        "status": "PENDING",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T14:27:40.612493",
+        "updated_at": "2026-10-26T14:27:40.612493",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-B11C02",
+        "customer_name": "Constanza Vega",
+        "comanda_number": 107,
+        "items": [
+            {
+                "product_id": "RAP-01",
+                "name": "Empanada de Pino al Horno",
+                "unit_price": 1200,
+                "quantity": 1,
+                "subtotal": 1200
+            }
+        ],
+        "customer_id": "usr-est-06",
+        "customer_role": "CLIENT",
+        "status": "CANCELLED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": false,
+        "pickup_qr": null,
+        "created_at": "2026-10-26T13:17:40.612493",
+        "updated_at": "2026-10-26T13:19:40.612493",
+        "total": 1200,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-5FB43C",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 108,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-5FB43C\",\"customer\":\"Comanda #108 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:41.540113",
+        "updated_at": "2026-10-26T14:37:41.540625",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-93FAF2",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 109,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-93FAF2\",\"customer\":\"Comanda #109 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:41.925506",
+        "updated_at": "2026-10-26T14:37:41.925853",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-A8548C",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 110,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-A8548C\",\"customer\":\"Comanda #110 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:42.303227",
+        "updated_at": "2026-10-26T14:37:42.304042",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-AFE65A",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 111,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 2,
+                "subtotal": 9600
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-AFE65A\",\"customer\":\"Comanda #111 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:43.531443",
+        "updated_at": "2026-10-26T14:37:43.531448",
+        "total": 9600,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-B6B17B",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 112,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-B6B17B\",\"customer\":\"Comanda #112 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:44.201723",
+        "updated_at": "2026-10-26T14:37:44.201730",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-EC4234",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 113,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "PENDING",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-EC4234\",\"customer\":\"Comanda #113 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:37:44.202348",
+        "updated_at": "2026-10-26T14:37:44.202349",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-174C69",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 114,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-174C69\",\"customer\":\"Comanda #114 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:14.325150",
+        "updated_at": "2026-10-26T14:38:14.325581",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-BDB329",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 115,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-BDB329\",\"customer\":\"Comanda #115 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:14.685101",
+        "updated_at": "2026-10-26T14:38:14.685493",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-03A926",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 116,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-03A926\",\"customer\":\"Comanda #116 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:15.044734",
+        "updated_at": "2026-10-26T14:38:15.047833",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-512C67",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 117,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 2,
+                "subtotal": 9600
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-512C67\",\"customer\":\"Comanda #117 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:16.258187",
+        "updated_at": "2026-10-26T14:38:16.258193",
+        "total": 9600,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-E47515",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 118,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-E47515\",\"customer\":\"Comanda #118 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:16.944556",
+        "updated_at": "2026-10-26T14:38:16.944561",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-2FFB75",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 119,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "PENDING",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-2FFB75\",\"customer\":\"Comanda #119 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:38:16.945219",
+        "updated_at": "2026-10-26T14:38:16.945220",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-A8947A",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 120,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-A8947A\",\"customer\":\"Comanda #120 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:52.797855",
+        "updated_at": "2026-10-26T14:47:52.798746",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-5106F9",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 121,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-5106F9\",\"customer\":\"Comanda #121 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:53.150124",
+        "updated_at": "2026-10-26T14:47:53.150636",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-04C20D",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 122,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "DELIVERED",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-04C20D\",\"customer\":\"Comanda #122 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:53.504739",
+        "updated_at": "2026-10-26T14:47:53.507510",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-423462",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 123,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 2,
+                "subtotal": 9600
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "BAES_JUNAEB",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-423462\",\"customer\":\"Comanda #123 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:54.706158",
+        "updated_at": "2026-10-26T14:47:54.706165",
+        "total": 9600,
+        "total_items": 2
+    },
+    {
+        "id_pedido": "PED-042EB3",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 124,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "CONFIRMED",
+        "payment_method": "WEBPAY_PLUS",
+        "is_paid": true,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-042EB3\",\"customer\":\"Comanda #124 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:55.333790",
+        "updated_at": "2026-10-26T14:47:55.333795",
+        "total": 4800,
+        "total_items": 1
+    },
+    {
+        "id_pedido": "PED-B310CF",
+        "customer_name": "Renato Escárate",
+        "comanda_number": 125,
+        "items": [
+            {
+                "product_id": "MENU-01",
+                "name": "Pastel de Choclo",
+                "unit_price": 4800,
+                "quantity": 1,
+                "subtotal": 4800
+            }
+        ],
+        "customer_id": "EST-01",
+        "customer_role": "CLIENT",
+        "status": "PENDING",
+        "payment_method": "EFECTIVO_POS",
+        "is_paid": false,
+        "pickup_qr": "{\"app\":\"PuntoCasino\",\"order_id\":\"PED-B310CF\",\"customer\":\"Comanda #125 - Renato Esc\\u00e1rate\"}",
+        "created_at": "2026-10-26T14:47:55.334529",
+        "updated_at": "2026-10-26T14:47:55.334529",
+        "total": 4800,
+        "total_items": 1
+    }
+]

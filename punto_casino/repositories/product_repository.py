@@ -1,15 +1,56 @@
-"""In-memory product repository with full CRUD operations and wireframe seed data."""
+"""JSON-backed product repository with full CRUD operations and wireframe seed data."""
 
+import json
+import os
+import time
 from typing import Dict, List, Optional
 from punto_casino.models.product import Product
 
 
-class InMemoryProductRepository:
-    """Thread-safe in-memory product repository with full CRUD capabilities."""
+class JsonProductRepository:
+    """Thread-safe JSON-persisted product repository with full CRUD capabilities."""
 
-    def __init__(self) -> None:
+    def __init__(self, file_path: Optional[str] = None) -> None:
         self._products: Dict[str, Product] = {}
-        self._seed_default_products()
+        self.last_io_duration_ms: float = 0.0
+
+        if file_path is None:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            file_path = os.path.join(root_dir, "data", "productos.json")
+        self.file_path = file_path
+
+        self._load_or_seed()
+
+    def _load_or_seed(self) -> None:
+        """Loads products from JSON file or seeds default catalog if missing."""
+        if os.path.exists(self.file_path):
+            self._load_from_json()
+        else:
+            self._seed_default_products()
+            self._save_to_json()
+
+    def _load_from_json(self) -> None:
+        """Reads products from disk using safe context manager and json.load()."""
+        start_time = time.perf_counter()
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._products = {item["id_producto"]: Product.from_dict(item) for item in data}
+        except (json.JSONDecodeError, KeyError, FileNotFoundError):
+            self._seed_default_products()
+            self._save_to_json()
+        self.last_io_duration_ms = (time.perf_counter() - start_time) * 1000
+
+    def _save_to_json(self) -> None:
+        """Persists current product catalog to JSON file using with open and json.dump()."""
+        start_time = time.perf_counter()
+        dirname = os.path.dirname(self.file_path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
+        payload = [p.to_dict() for p in self._products.values()]
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=4, ensure_ascii=False)
+        self.last_io_duration_ms = (time.perf_counter() - start_time) * 1000
 
     def _seed_default_products(self) -> None:
         """Seed initial products based on PRONTO CASINO UCT wireframe (docs/PRONTO CASINO.pdf)."""
@@ -108,8 +149,9 @@ class InMemoryProductRepository:
     # --- CRUD Operations ---
 
     def create(self, product: Product) -> Product:
-        """Create and add a new product/dish to the catalog (CRUD: Create)."""
+        """Create and persist a new product/dish in the catalog (CRUD: Create)."""
         self._products[product.id_producto] = product
+        self._save_to_json()
         return product
 
     def get_all(self, include_inactive: bool = False) -> List[Product]:
@@ -145,31 +187,39 @@ class InMemoryProductRepository:
         ]
 
     def update(self, product: Product) -> bool:
-        """Update existing product data (CRUD: Update)."""
+        """Update existing product data and persist (CRUD: Update)."""
         if product.id_producto not in self._products:
             return False
         self._products[product.id_producto] = product
+        self._save_to_json()
         return True
 
     def delete(self, product_id: str) -> bool:
-        """Permanently remove a product from the catalog (CRUD: Delete)."""
+        """Permanently remove a product from the catalog and persist (CRUD: Delete)."""
         if product_id not in self._products:
             return False
         del self._products[product_id]
+        self._save_to_json()
         return True
 
     def update_stock(self, product_id: str, new_stock: int) -> bool:
-        """Update inventory stock count."""
+        """Update inventory stock count and persist."""
         product = self._products.get(product_id)
         if not product:
             return False
         product.stock = max(0, new_stock)
+        self._save_to_json()
         return True
 
     def set_active_status(self, product_id: str, is_active: bool) -> bool:
-        """Toggle active status for a product."""
+        """Toggle active status for a product and persist."""
         product = self._products.get(product_id)
         if not product:
             return False
         product.is_active = is_active
+        self._save_to_json()
         return True
+
+
+# Backward-compatible alias for existing imports
+InMemoryProductRepository = JsonProductRepository
