@@ -4,7 +4,7 @@ import os
 import unittest
 from punto_casino.models.user import UserRole
 from punto_casino.models.product import Product
-from punto_casino.models.order import OrderStatus
+from punto_casino.models.order import OrderStatus, PaymentMethod
 from punto_casino.repositories.database import DatabaseManager
 from punto_casino.repositories.user_repository import UserRepository
 from punto_casino.repositories.product_repository import InMemoryProductRepository
@@ -80,19 +80,87 @@ class TestDomainServices(unittest.TestCase):
         self.assertEqual(self.order_service.get_cart_count(), 2)
         self.assertEqual(self.order_service.get_cart_total(), prod1.price * 2)
 
-        # Checkout order
+        # Checkout order (default prepaid via BAES JUNAEB)
         order = self.order_service.checkout()
         self.assertIsNotNone(order)
         self.assertEqual(order.total, prod1.price * 2)
-        self.assertEqual(order.status, OrderStatus.PENDING)
+        self.assertEqual(order.status, OrderStatus.CONFIRMED)
+        self.assertTrue(order.is_paid)
+        self.assertEqual(order.payment_method, PaymentMethod.BAES_JUNAEB.value)
         self.assertEqual(self.order_service.get_cart_count(), 0)
 
-    def test_cashier_processing_workflow(self):
-        # Place order
+    def test_payment_gateway_checkout_options(self):
+        self.auth_service.quick_login("estudiante")
+        prods = self.prod_repo.get_all()
+        prod1 = prods[0]
+
+        # 1. Webpay Plus (Prepaid -> CONFIRMED)
+        self.order_service.add_to_cart(prod1.id_producto, 1)
+        order_webpay = self.order_service.checkout(
+            payment_method=PaymentMethod.WEBPAY_PLUS.value,
+            is_paid=True,
+        )
+        self.assertTrue(order_webpay.is_paid)
+        self.assertEqual(order_webpay.status, OrderStatus.CONFIRMED)
+        self.assertEqual(order_webpay.payment_method, PaymentMethod.WEBPAY_PLUS.value)
+
+        # 2. Meson Cash Payment (Unpaid -> PENDING)
+        self.order_service.add_to_cart(prod1.id_producto, 1)
+        order_cash = self.order_service.checkout(
+            payment_method=PaymentMethod.EFECTIVO_POS.value,
+            is_paid=False,
+        )
+        self.assertFalse(order_cash.is_paid)
+        self.assertEqual(order_cash.status, OrderStatus.PENDING)
+        self.assertEqual(order_cash.payment_method, PaymentMethod.EFECTIVO_POS.value)
+
+    def test_cashier_fast_delivery_prepaid_comanda(self):
+        # Student orders and pays in mobile app via BAES
         self.auth_service.quick_login("estudiante")
         prods = self.prod_repo.get_all()
         self.order_service.add_to_cart(prods[0].id_producto, 1)
-        order = self.order_service.checkout()
+        order = self.order_service.checkout(
+            payment_method=PaymentMethod.BAES_JUNAEB.value,
+            is_paid=True,
+        )
+        self.assertTrue(order.is_paid)
+
+        # Cashier receives QR and delivers in 1-touch
+        success, msg, delivered_order = self.cashier_service.process_qr_payment(order.id_pedido)
+        self.assertTrue(success)
+        self.assertEqual(delivered_order.status, OrderStatus.DELIVERED)
+        self.assertTrue(delivered_order.is_paid)
+
+    def test_cashier_pos_machine_charge_and_delivery(self):
+        # Order pending payment at meson
+        self.auth_service.quick_login("estudiante")
+        prods = self.prod_repo.get_all()
+        self.order_service.add_to_cart(prods[0].id_producto, 1)
+        order = self.order_service.checkout(
+            payment_method=PaymentMethod.EFECTIVO_POS.value,
+            is_paid=False,
+        )
+        self.assertFalse(order.is_paid)
+
+        # Cashier charges with POS card terminal and marks delivered simultaneously
+        success, msg, delivered_order = self.cashier_service.process_qr_payment(
+            order.id_pedido,
+            payment_method=PaymentMethod.WEBPAY_PLUS.value,
+        )
+        self.assertTrue(success)
+        self.assertEqual(delivered_order.status, OrderStatus.DELIVERED)
+        self.assertTrue(delivered_order.is_paid)
+        self.assertEqual(delivered_order.payment_method, PaymentMethod.WEBPAY_PLUS.value)
+
+    def test_cashier_processing_workflow(self):
+        # Place order with unpaid cash
+        self.auth_service.quick_login("estudiante")
+        prods = self.prod_repo.get_all()
+        self.order_service.add_to_cart(prods[0].id_producto, 1)
+        order = self.order_service.checkout(
+            payment_method=PaymentMethod.EFECTIVO_POS.value,
+            is_paid=False,
+        )
 
         # Cashier confirms
         self.cashier_service.confirm_order(order.id_pedido)

@@ -118,6 +118,7 @@ class ProntoCasinoApp(MDApp):
         self.catalog_screen = CatalogScreen(
             order_service=self.order_service,
             auth_service=self.auth_service,
+            on_navigate=self.navigate_to,
             name="catalog",
         )
         self.reservations_screen = ReservationsScreen(

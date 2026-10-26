@@ -10,25 +10,52 @@ class OrderStatus(str, Enum):
     """Lifecycle states of an order."""
 
     PENDING = "PENDING"          # Creado por cliente, pendiente por pagar en casino
-    CONFIRMED = "CONFIRMED"      # Aprobado por cocina/caja
+    CONFIRMED = "CONFIRMED"      # Aprobado por cocina/caja y en preparación
     CANCELLED = "CANCELLED"      # Cancelado por el cliente
     REJECTED = "REJECTED"        # Rechazado por caja (falta de stock)
     READY = "READY"              # Preparado y listo para entrega en meson
     DELIVERED = "DELIVERED"      # Cobrado y entregado al cliente
 
 
+class PaymentMethod(str, Enum):
+    """Chilean higher-education payment methods (Punto 4, Plan Expansión)."""
+
+    BAES_JUNAEB = "BAES_JUNAEB"    # Beca BAES JUNAEB (Edenred / Pluxee Sodexo) - >70% mercado
+    WEBPAY_PLUS = "WEBPAY_PLUS"    # Transbank Webpay Plus (Débito / Crédito / CuentaRUT)
+    FINTOC_KHIPU = "FINTOC_KHIPU"  # Open Finance TEF (Fintoc / Khipu)
+    BECA_INTERNA = "BECA_INTERNA"  # Beca Interna de Alimentación DAE / Convenio UCT
+    EFECTIVO_POS = "EFECTIVO_POS"  # Efectivo / Máquina POS en Mesón
+
+
+PAYMENT_METHOD_LABELS = {
+    PaymentMethod.BAES_JUNAEB: "Beca BAES",
+    PaymentMethod.WEBPAY_PLUS: "Webpay Plus",
+    PaymentMethod.FINTOC_KHIPU: "Transferencia TEF",
+    PaymentMethod.BECA_INTERNA: "Beca DAE",
+    PaymentMethod.EFECTIVO_POS: "Mesón",
+}
+
+PAYMENT_METHOD_ICONS = {
+    PaymentMethod.BAES_JUNAEB: "school",
+    PaymentMethod.WEBPAY_PLUS: "credit-card",
+    PaymentMethod.FINTOC_KHIPU: "bank-transfer",
+    PaymentMethod.BECA_INTERNA: "card-account-details-star",
+    PaymentMethod.EFECTIVO_POS: "cash-register",
+}
+
+
 ORDER_STATUS_LABELS = {
-    OrderStatus.PENDING: "Pendiente por pagar",
-    OrderStatus.CONFIRMED: "Confirmado en cocina",
-    OrderStatus.READY: "Listo para entrega",
-    OrderStatus.DELIVERED: "Pagado y Entregado",
+    OrderStatus.PENDING: "Pendiente de pago",
+    OrderStatus.CONFIRMED: "En Preparación",
+    OrderStatus.READY: "Listo para retiro",
+    OrderStatus.DELIVERED: "Entregado",
     OrderStatus.CANCELLED: "Cancelada",
     OrderStatus.REJECTED: "Rechazada",
 }
 
 ORDER_STATUS_COLORS = {
     OrderStatus.PENDING: "#D97706",    # Ámbar / Naranja pendiente
-    OrderStatus.CONFIRMED: "#0288D1",  # Azul celeste cocina
+    OrderStatus.CONFIRMED: "#0288D1",  # Azul celeste cocina en preparación
     OrderStatus.READY: "#0D9488",      # Verde azulado listo
     OrderStatus.DELIVERED: "#10B981",  # Esmeralda entregado
     OrderStatus.CANCELLED: "#64748B",  # Gris pizarra cancelado
@@ -62,6 +89,8 @@ class Order:
     customer_id: Optional[str] = None
     customer_role: str = "client"
     status: OrderStatus = OrderStatus.PENDING
+    payment_method: str = PaymentMethod.BAES_JUNAEB.value
+    is_paid: bool = False
     pickup_qr: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)

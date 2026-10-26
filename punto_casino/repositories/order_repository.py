@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Dict, List, Optional
-from punto_casino.models.order import Order, OrderStatus
+from punto_casino.models.order import Order, OrderStatus, PaymentMethod
 
 
 class InMemoryOrderRepository:
@@ -30,6 +30,8 @@ class InMemoryOrderRepository:
                     OrderItem("BEB-01", "Jugo Natural de Naranja", 1500, 1),
                 ],
                 status=OrderStatus.DELIVERED,
+                payment_method=PaymentMethod.BAES_JUNAEB.value,
+                is_paid=True,
                 created_at=now - timedelta(minutes=140),
                 updated_at=now - timedelta(minutes=120),
             ),
@@ -44,6 +46,8 @@ class InMemoryOrderRepository:
                     OrderItem("BEB-02", "Bebida en Lata 350ml", 1200, 1),
                 ],
                 status=OrderStatus.DELIVERED,
+                payment_method=PaymentMethod.WEBPAY_PLUS.value,
+                is_paid=True,
                 created_at=now - timedelta(minutes=110),
                 updated_at=now - timedelta(minutes=95),
             ),
@@ -58,6 +62,8 @@ class InMemoryOrderRepository:
                     OrderItem("BEB-01", "Jugo Natural de Naranja", 1500, 1),
                 ],
                 status=OrderStatus.DELIVERED,
+                payment_method=PaymentMethod.FINTOC_KHIPU.value,
+                is_paid=True,
                 created_at=now - timedelta(minutes=75),
                 updated_at=now - timedelta(minutes=60),
             ),
@@ -72,6 +78,8 @@ class InMemoryOrderRepository:
                     OrderItem("BEB-02", "Bebida en Lata 350ml", 1200, 1),
                 ],
                 status=OrderStatus.DELIVERED,
+                payment_method=PaymentMethod.BECA_INTERNA.value,
+                is_paid=True,
                 created_at=now - timedelta(minutes=50),
                 updated_at=now - timedelta(minutes=40),
             ),
@@ -85,6 +93,8 @@ class InMemoryOrderRepository:
                     OrderItem("MENU-04", "Lasaña de Berenjenas y Espinaca", 4500, 1),
                 ],
                 status=OrderStatus.CONFIRMED,
+                payment_method=PaymentMethod.BAES_JUNAEB.value,
+                is_paid=True,
                 created_at=now - timedelta(minutes=25),
                 updated_at=now - timedelta(minutes=20),
             ),
@@ -98,6 +108,8 @@ class InMemoryOrderRepository:
                     OrderItem("MENU-01", "Pastel de Choclo", 4800, 1),
                 ],
                 status=OrderStatus.PENDING,
+                payment_method=PaymentMethod.EFECTIVO_POS.value,
+                is_paid=False,
                 created_at=now - timedelta(minutes=10),
                 updated_at=now - timedelta(minutes=10),
             ),
@@ -111,6 +123,8 @@ class InMemoryOrderRepository:
                     OrderItem("RAP-01", "Empanada de Pino al Horno", 1200, 1),
                 ],
                 status=OrderStatus.CANCELLED,
+                payment_method=PaymentMethod.BAES_JUNAEB.value,
+                is_paid=False,
                 created_at=now - timedelta(minutes=80),
                 updated_at=now - timedelta(minutes=78),
             ),

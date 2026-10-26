@@ -9,7 +9,14 @@ from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 
-from punto_casino.models.order import Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
+from punto_casino.models.order import (
+    Order,
+    OrderStatus,
+    ORDER_STATUS_LABELS,
+    ORDER_STATUS_COLORS,
+    PaymentMethod,
+    PAYMENT_METHOD_LABELS,
+)
 from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
@@ -139,8 +146,13 @@ class ReservationsScreen(MDScreen):
             return
 
         for order in orders:
-            status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-            status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
+            pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
+            if order.is_paid:
+                status_text = f"✓ Pagado • {pay_lbl}"
+                status_color = "#10B981"
+            else:
+                status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+                status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
 
             # CRITICAL FIX: Explicit non-zero height dp(114) prevents OpenGL FBO Incomplete Attachment (36054) crash
             card = MDCard(
@@ -164,7 +176,7 @@ class ReservationsScreen(MDScreen):
                 markup=True,
                 font_style="Title",
                 role="small",
-                size_hint_x=0.60,
+                size_hint_x=0.55,
                 shorten=True,
                 shorten_from="right",
             )
@@ -174,7 +186,7 @@ class ReservationsScreen(MDScreen):
                 halign="right",
                 font_style="Label",
                 role="medium",
-                size_hint_x=0.40,
+                size_hint_x=0.45,
                 shorten=True,
                 shorten_from="right",
             )
@@ -227,8 +239,13 @@ class ReservationsScreen(MDScreen):
         """Display full comanda breakdown, in-memory QR code texture, and cancellation action."""
         self._hide_modals()
 
-        status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-        status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
+        pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
+        if order.is_paid:
+            status_text = f"✓ Pagado • {pay_lbl}"
+            status_color = "#10B981"
+        else:
+            status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+            status_color = ORDER_STATUS_COLORS.get(order.status, "#475569")
 
         current_user = self.auth_service.current_user
         is_cashier_or_admin = current_user and current_user.role in (UserRole.CASHIER, UserRole.ADMIN)
@@ -241,8 +258,8 @@ class ReservationsScreen(MDScreen):
             # 32 (padding) + 26 (header) + 10 + items_box_h + 10 + 22 (total) + 10 + 78 (info_card) + 10 + 38 (actions)
             modal_h = items_box_h + dp(236)
         else:
-            # 28 (padding) + 26 (header) + 8 + items_box_h + 8 + 22 (total) + 8 + 190 (qr) + 6 + 26 (instr) + 8 + 38 (actions)
-            modal_h = items_box_h + dp(368)
+            # 28 (padding) + 26 (header) + 8 + items_box_h + 8 + 22 (total) + 8 + 190 (qr) + 6 + 34 (instr) + 8 + 38 (actions)
+            modal_h = items_box_h + (dp(376) if order.is_paid else dp(368))
 
         # Hide background scroll to avoid any visible leaks
         if hasattr(self, "scroll") and self.scroll:
@@ -405,14 +422,24 @@ class ReservationsScreen(MDScreen):
                 self.detail_modal.add_widget(err_lbl)
 
             # Instructions
+            if order.is_paid:
+                instr_text = (
+                    f"[color=#10B981][b]✓ Pedido pagado con {pay_lbl} y en preparación.[/b][/color]\n"
+                    f"[color=#64748B]Muestra este QR en el mesón para retiro express sin hacer filas.[/color]"
+                )
+                instr_h = dp(34)
+            else:
+                instr_text = "[color=#64748B]Muestra este código en la caja del casino para pagar y retirar tu comanda.[/color]"
+                instr_h = dp(26)
+
             instr_lbl = MDLabel(
-                text="[color=#64748B]Muestra este código en la caja del casino para retirar y pagar tu pedido sin hacer fila.[/color]",
+                text=instr_text,
                 markup=True,
                 halign="center",
                 font_style="Label",
                 role="small",
                 size_hint_y=None,
-                height=dp(26),
+                height=instr_h,
             )
             self.detail_modal.add_widget(instr_lbl)
 
