@@ -21,6 +21,8 @@ from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     create_button,
     create_offer_badge,
+    create_category_pill,
+    create_category_title_header,
     LIGHT_GREEN,
     SOFT_MINT,
     UCT_NAVY,
@@ -207,6 +209,9 @@ class CatalogScreen(MDScreen):
                 height=dp(34),
                 on_release=lambda x, c=full_cat: self._on_select_category(c),
             )
+            if is_active:
+                cat_st = get_category_style(full_cat)
+                btn.md_bg_color = cat_st["rgba"]
             self.cat_box.add_widget(btn)
 
     def on_enter(self):
@@ -252,6 +257,11 @@ class CatalogScreen(MDScreen):
         self.products_container.add_widget(self.desc_label)
 
         products = self.order_service.product_repo.get_by_category(self.selected_category)
+
+        # Standardized Category Title Header
+        self.products_container.add_widget(
+            create_category_title_header(self.selected_category, count=len(products))
+        )
 
         # Empty state handling
         if not products:
@@ -364,26 +374,20 @@ class CatalogScreen(MDScreen):
             if prod.is_offer:
                 card.add_widget(create_offer_badge(prod.offer_label or "Precio Rebajado"))
 
-            # Row 2: Category and Stock Badges
-            badge_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(18))
-            cat_style = get_category_style(prod.category)
-            badge_line.add_widget(
-                MDLabel(
-                    text=f"[b][color={cat_style['hex']}]{prod.category}[/color][/b]",
-                    markup=True,
-                    font_style="Label",
-                    role="small",
-                )
+            # Row 2: Category Pill & Stock Pill (Standardized M3 Pill Component)
+            badge_line = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(20), spacing=dp(6))
+            cat_pill = create_category_pill(prod.category)
+            stock_color = "#10B981" if prod.stock > 0 else "#EF4444"
+            stock_msg = f"{prod.stock} disp." if prod.stock > 0 else "Agotado"
+            stock_lbl = MDLabel(
+                text=f"[color={stock_color}][b]{stock_msg}[/b][/color]",
+                markup=True,
+                halign="right",
+                font_style="Label",
+                role="small",
             )
-            badge_line.add_widget(
-                MDLabel(
-                    text=f"[color=#10B981]{prod.stock} disp.[/color]" if prod.stock > 0 else "[color=#EF4444]Agotado[/color]",
-                    markup=True,
-                    halign="right",
-                    font_style="Label",
-                    role="small",
-                )
-            )
+            badge_line.add_widget(cat_pill)
+            badge_line.add_widget(stock_lbl)
             card.add_widget(badge_line)
 
             # Row 3: Ingredients (Shortened cleanly with ellipsis)

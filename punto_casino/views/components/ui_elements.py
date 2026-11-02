@@ -155,16 +155,17 @@ def create_offer_badge(offer_label: str) -> MDCard:
 
 
 def create_category_pill(category: str) -> MDCard:
-    """Create an authentic Material 3 pill badge displaying category name with coherent color branding."""
+    """Create an authentic Material 3 pill badge displaying category name with proportional width and centered text."""
     from punto_casino.core.config import get_category_style
 
     cat_style = get_category_style(category)
+    cat_text = category.strip() if category else "General"
+
     badge = MDCard(
         orientation="horizontal",
         size_hint=(None, None),
         height=dp(20),
-        padding=[dp(6), dp(1), dp(6), dp(1)],
-        spacing=dp(3),
+        padding=[dp(8), dp(1), dp(8), dp(1)],
         style="filled",
         theme_bg_color="Custom",
         md_bg_color=cat_style["bg_light"],
@@ -172,16 +173,79 @@ def create_category_pill(category: str) -> MDCard:
         line_color=[*cat_style["rgba"][:3], 0.35],
         elevation=0,
     )
-    badge.add_widget(
-        MDLabel(
-            text=f"[b][color={cat_style['hex']}]{category}[/color][/b]",
-            markup=True,
-            font_style="Label",
-            role="small",
-            adaptive_width=True,
-        )
+    lbl = MDLabel(
+        text=f"[b][color={cat_style['hex']}]{cat_text}[/color][/b]",
+        markup=True,
+        font_style="Label",
+        role="small",
+        halign="center",
+        valign="center",
+        size_hint=(1, 1),
     )
+    lbl.text_size = (None, None)
+    lbl.texture_update()
+
+    # Exact proportional width hugging the string: texture width + horizontal padding (16dp)
+    text_w = lbl.texture_size[0]
+    initial_w = (text_w if text_w > 0 else int(len(cat_text) * 7.5)) + dp(16)
+    badge.width = initial_w
+    lbl.bind(texture_size=lambda inst, val: setattr(badge, "width", val[0] + dp(16)))
+
+    badge.add_widget(lbl)
     return badge
+
+
+def create_category_title_header(category: str, count: Optional[int] = None) -> MDCard:
+    """Create an authentic Material 3 category section header card proportional to the string and centered."""
+    from punto_casino.core.config import get_category_style
+
+    cat_style = get_category_style(category)
+    cat_text = category.strip() if category else "General"
+    count_suffix = f" [color=#64748B]({count} platos)[/color]" if count is not None else ""
+    full_text = f"[b][color={cat_style['hex']}]{cat_text}[/color][/b]{count_suffix}"
+
+    header = MDCard(
+        orientation="horizontal",
+        size_hint=(None, None),
+        height=dp(34),
+        padding=[dp(14), dp(5), dp(14), dp(5)],
+        spacing=dp(8),
+        pos_hint={"center_x": 0.5},
+        style="filled",
+        theme_bg_color="Custom",
+        md_bg_color=cat_style["bg_light"],
+        radius=[dp(10), dp(10), dp(10), dp(10)],
+        line_color=[*cat_style["rgba"][:3], 0.30],
+        elevation=0,
+    )
+    icon = MDIcon(
+        icon=cat_style.get("icon", "tag-outline"),
+        theme_icon_color="Custom",
+        icon_color=cat_style["rgba"],
+        size_hint=(None, None),
+        size=(dp(20), dp(20)),
+        pos_hint={"center_y": 0.5},
+    )
+    lbl = MDLabel(
+        text=full_text,
+        markup=True,
+        font_style="Title",
+        role="small",
+        adaptive_size=True,
+        pos_hint={"center_y": 0.5},
+    )
+    lbl.text_size = (None, None)
+    lbl.texture_update()
+
+    # Proportional width hugging icon + spacing + string texture + padding
+    text_w = lbl.texture_size[0]
+    initial_w = dp(14) + dp(20) + dp(8) + (text_w if text_w > 0 else int(len(cat_text) * 9 + 80)) + dp(14)
+    header.width = initial_w
+    lbl.bind(texture_size=lambda inst, val: setattr(header, "width", dp(14) + dp(20) + dp(8) + val[0] + dp(14)))
+
+    header.add_widget(icon)
+    header.add_widget(lbl)
+    return header
 
 
 class M3NavItem(ButtonBehavior, MDBoxLayout):

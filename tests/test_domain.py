@@ -17,7 +17,7 @@ from punto_casino.services.cashier_service import CashierService
 class TestDomainServices(unittest.TestCase):
     """Test suite covering critical business workflows."""
 
-    def _clean_test_db(self):
+    def _clean_test_files(self):
         for suffix in ("", "-wal", "-shm"):
             p = self.test_db + suffix
             if os.path.exists(p):
@@ -25,20 +25,28 @@ class TestDomainServices(unittest.TestCase):
                     os.remove(p)
                 except OSError:
                     pass
+        for p in (getattr(self, "test_prod_file", None), getattr(self, "test_order_file", None)):
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
 
     def setUp(self):
         self.test_db = "test_punto_casino.db"
-        self._clean_test_db()
+        self.test_prod_file = "test_temp_productos.json"
+        self.test_order_file = "test_temp_pedidos.json"
+        self._clean_test_files()
         self.db_manager = DatabaseManager(self.test_db)
         self.user_repo = UserRepository(self.db_manager)
-        self.prod_repo = InMemoryProductRepository()
-        self.order_repo = InMemoryOrderRepository()
+        self.prod_repo = InMemoryProductRepository(file_path=self.test_prod_file)
+        self.order_repo = InMemoryOrderRepository(file_path=self.test_order_file)
         self.auth_service = AuthService(self.user_repo)
         self.order_service = OrderService(self.prod_repo, self.order_repo, self.auth_service)
         self.cashier_service = CashierService(self.prod_repo, self.order_repo, self.auth_service)
 
     def tearDown(self):
-        self._clean_test_db()
+        self._clean_test_files()
 
     def test_auth_quick_login(self):
         user = self.auth_service.quick_login("admin")
@@ -268,18 +276,38 @@ class TestDomainServices(unittest.TestCase):
         self.assertGreater(len(report["top_dishes"]), 0)
 
     def test_category_color_coherence(self):
-        from punto_casino.core.config import CATEGORY_PALETTE, get_category_style
+        from punto_casino.core.config import CATEGORY_PALETTE, get_category_style, ADMIN_TOOLS_PALETTE
 
-        for cat in ["Menú Normal", "Menú Ejecutivo", "Menú Hipocalórico", "Comidas Rápidas", "Bebidas"]:
+        for cat in [
+            "Menú Normal",
+            "Menú Ejecutivo",
+            "Menú Hipocalórico",
+            "Menú Vegetariano",
+            "Comidas Rápidas",
+            "Bebidas",
+            "Postres y Snacks",
+            "Ofertas",
+            "Todos",
+        ]:
             style = get_category_style(cat)
             self.assertIn("hex", style)
             self.assertIn("rgba", style)
             self.assertIn("label", style)
+            self.assertIn("icon", style)
             self.assertTrue(style["hex"].startswith("#"))
             self.assertEqual(len(style["rgba"]), 4)
 
         unknown = get_category_style("Categoría Inexistente")
         self.assertEqual(unknown["hex"], "#64748B")
+
+        # Admin tools palette validation
+        self.assertIn("tool_title", ADMIN_TOOLS_PALETTE)
+        self.assertIn("kpi_collected", ADMIN_TOOLS_PALETTE)
+        self.assertIn("kpi_average", ADMIN_TOOLS_PALETTE)
+        self.assertIn("status_delivered", ADMIN_TOOLS_PALETTE)
+        self.assertIn("status_pending", ADMIN_TOOLS_PALETTE)
+        self.assertIn("status_cancelled", ADMIN_TOOLS_PALETTE)
+        self.assertIn("rank_gold", ADMIN_TOOLS_PALETTE)
 
 
 if __name__ == "__main__":

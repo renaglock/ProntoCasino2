@@ -18,13 +18,14 @@ from kivymd.uix.textfield import (
 from punto_casino.models.order import Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS
 from punto_casino.models.product import Product
 from punto_casino.repositories.product_repository import InMemoryProductRepository
-from punto_casino.core.config import get_category_style
+from punto_casino.core.config import get_category_style, ADMIN_TOOLS_PALETTE
 from punto_casino.services.order_service import OrderService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     create_button,
     create_offer_badge,
     create_category_pill,
+    create_category_title_header,
     LIGHT_GREEN,
     SOFT_MINT,
     UCT_ICE_BLUE,
@@ -202,6 +203,11 @@ class AdminScreen(MDScreen):
 
         products = self.product_repo.get_all(include_inactive=True)
 
+        # Standardized Category Title Header for Admin Catalog
+        self.content_container.add_widget(
+            create_category_title_header("Platos Registrados", count=len(products))
+        )
+
         for prod in products:
             card_h = dp(156) if prod.is_offer else dp(132)
             card = MDCard(
@@ -373,21 +379,21 @@ class AdminScreen(MDScreen):
             spacing=dp(6),
             style="outlined",
             theme_bg_color="Custom",
-            md_bg_color=[0.96, 0.98, 1.0, 1.0],
+            md_bg_color=ADMIN_TOOLS_PALETTE["kpi_container_bg"],
             radius=[dp(12), dp(12), dp(12), dp(12)],
-            line_color=[0.02, 0.53, 0.82, 0.35],
+            line_color=ADMIN_TOOLS_PALETTE["card_border"],
             elevation=0,
         )
 
         title_box = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(22))
         title_lbl = MDLabel(
-            text="[b][color=#0A3871]Resumen Contable del Casino[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['tool_title']}]Resumen Contable del Casino[/color][/b]",
             markup=True,
             font_style="Title",
             role="small",
         )
         delivered_lbl = MDLabel(
-            text=f"[color=#10B981][b]{report['delivered_count']} cobrados[/b][/color]",
+            text=f"[color={ADMIN_TOOLS_PALETTE['kpi_collected']}][b]{report['delivered_count']} cobrados[/b][/color]",
             markup=True,
             halign="right",
             font_style="Label",
@@ -400,7 +406,7 @@ class AdminScreen(MDScreen):
         # Big Total Collected
         tot_box = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(34), spacing=dp(8))
         total_lbl = MDLabel(
-            text=f"[b][color=#10B981]{format_currency(report['total_collected'])}[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['kpi_collected']}]{format_currency(report['total_collected'])}[/color][/b]",
             markup=True,
             font_style="Headline",
             role="small",
@@ -420,9 +426,9 @@ class AdminScreen(MDScreen):
 
         # 3 KPI Stats Row (General)
         kpi_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(6))
-        p1 = self._build_mini_kpi_pill("Ticket Prom.", format_currency(report["average_ticket"]), "#0288D1")
-        p2 = self._build_mini_kpi_pill("Efectividad", f"{report['delivery_rate']}%", "#10B981")
-        p3 = self._build_mini_kpi_pill("Despachados", f"{report['total_items_sold']} un.", "#0A3871")
+        p1 = self._build_mini_kpi_pill("Ticket Prom.", format_currency(report["average_ticket"]), ADMIN_TOOLS_PALETTE["kpi_average"])
+        p2 = self._build_mini_kpi_pill("Efectividad", f"{report['delivery_rate']}%", ADMIN_TOOLS_PALETTE["kpi_efficiency"])
+        p3 = self._build_mini_kpi_pill("Despachados", f"{report['total_items_sold']} un.", ADMIN_TOOLS_PALETTE["kpi_dispatched"])
 
         kpi_row.add_widget(p1)
         kpi_row.add_widget(p2)
@@ -431,9 +437,9 @@ class AdminScreen(MDScreen):
 
         # 3 KPI Stats Row (NumPy & time.perf_counter Analytics)
         kpi_row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(6))
-        p4 = self._build_mini_kpi_pill("Mediana (NumPy)", format_currency(report.get("median_ticket", 0)), "#7C3AED")
-        p5 = self._build_mini_kpi_pill("Desv. Est. (NumPy)", f"±{format_currency(int(report.get('std_ticket', 0)))}", "#D97706")
-        p6 = self._build_mini_kpi_pill("perf_counter()", f"{report.get('analytics_time_ms', 0)} ms", "#0D9488")
+        p4 = self._build_mini_kpi_pill("Mediana (NumPy)", format_currency(report.get("median_ticket", 0)), ADMIN_TOOLS_PALETTE["kpi_median"])
+        p5 = self._build_mini_kpi_pill("Desv. Est. (NumPy)", f"±{format_currency(int(report.get('std_ticket', 0)))}", ADMIN_TOOLS_PALETTE["kpi_std_dev"])
+        p6 = self._build_mini_kpi_pill("perf_counter()", f"{report.get('analytics_time_ms', 0)} ms", ADMIN_TOOLS_PALETTE["kpi_perf_counter"])
 
         kpi_row2.add_widget(p4)
         kpi_row2.add_widget(p5)
@@ -587,7 +593,7 @@ class AdminScreen(MDScreen):
         )
 
         title = MDLabel(
-            text="[b][color=#0A3871]Balance Operativo de Comandas[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['tool_title']}]Balance Operativo de Comandas[/color][/b]",
             markup=True,
             font_style="Title",
             role="small",
@@ -618,7 +624,7 @@ class AdminScreen(MDScreen):
                     size_hint=(del_pct / 100.0, 1),
                     style="filled",
                     theme_bg_color="Custom",
-                    md_bg_color=[0.06, 0.65, 0.45, 1.0],  # Verde
+                    md_bg_color=ADMIN_TOOLS_PALETTE["status_delivered_rgba"],
                     radius=[dp(4), dp(4), dp(4), dp(4)],
                     elevation=0,
                 )
@@ -629,7 +635,7 @@ class AdminScreen(MDScreen):
                     size_hint=(pen_pct / 100.0, 1),
                     style="filled",
                     theme_bg_color="Custom",
-                    md_bg_color=[0.85, 0.47, 0.02, 1.0],  # Ámbar
+                    md_bg_color=ADMIN_TOOLS_PALETTE["status_pending_rgba"],
                     radius=[dp(4), dp(4), dp(4), dp(4)],
                     elevation=0,
                 )
@@ -640,24 +646,24 @@ class AdminScreen(MDScreen):
                     size_hint=(can_pct / 100.0, 1),
                     style="filled",
                     theme_bg_color="Custom",
-                    md_bg_color=[0.86, 0.15, 0.15, 1.0],  # Rojo
+                    md_bg_color=ADMIN_TOOLS_PALETTE["status_cancelled_rgba"],
                     radius=[dp(4), dp(4), dp(4), dp(4)],
                     elevation=0,
                 )
             )
         card.add_widget(bar_box)
 
-        # Legend Row (Crisp typography without broken unicode box glyphs)
+        # Legend Row (Crisp typography with standardized palette)
         legend_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(26))
         lbl_ent = MDLabel(
-            text=f"[b][color=#10B981]Entregadas: {del_count}[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['status_delivered']}]Entregadas: {del_count}[/color][/b]",
             markup=True,
             font_style="Label",
             role="small",
             size_hint_x=0.38,
         )
         lbl_pen = MDLabel(
-            text=f"[b][color=#D97706]En Cocina: {pen_count}[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['status_pending']}]En Cocina: {pen_count}[/color][/b]",
             markup=True,
             halign="center",
             font_style="Label",
@@ -665,7 +671,7 @@ class AdminScreen(MDScreen):
             size_hint_x=0.34,
         )
         lbl_can = MDLabel(
-            text=f"[b][color=#EF4444]Canceladas: {can_count}[/color][/b]",
+            text=f"[b][color={ADMIN_TOOLS_PALETTE['status_cancelled']}]Canceladas: {can_count}[/color][/b]",
             markup=True,
             halign="right",
             font_style="Label",
@@ -720,7 +726,13 @@ class AdminScreen(MDScreen):
             return card
 
         badges = ["#1", "#2", "#3", "#4", "#5"]
-        badge_colors = ["#D97706", "#64748B", "#B45309", "#94A3B8", "#94A3B8"]
+        badge_colors = [
+            ADMIN_TOOLS_PALETTE["rank_gold"],
+            ADMIN_TOOLS_PALETTE["rank_silver"],
+            ADMIN_TOOLS_PALETTE["rank_bronze"],
+            ADMIN_TOOLS_PALETTE["rank_neutral"],
+            ADMIN_TOOLS_PALETTE["rank_neutral"],
+        ]
 
         for idx, dish in enumerate(dishes[:4]):
             b_text = badges[idx] if idx < len(badges) else f"#{idx+1}"
@@ -831,21 +843,21 @@ class AdminScreen(MDScreen):
         )
         self.chip_del = create_button(
             text=f"Entregados ({del_count})",
-            style="filled" if self.history_filter == "DELIVERED" else "tonal",
+            style="success" if self.history_filter == "DELIVERED" else "tonal",
             size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("DELIVERED"),
         )
         self.chip_act = create_button(
             text=f"Cocina ({act_count})",
-            style="filled" if self.history_filter == "ACTIVE" else "tonal",
+            style="offer" if self.history_filter == "ACTIVE" else "tonal",
             size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("ACTIVE"),
         )
         self.chip_can = create_button(
             text=f"Cancelados ({can_count})",
-            style="filled" if self.history_filter == "CANCELLED" else "tonal",
+            style="danger" if self.history_filter == "CANCELLED" else "tonal",
             size_hint=(None, None),
             height=dp(32),
             on_release=lambda x: self._set_history_filter("CANCELLED"),
@@ -875,9 +887,9 @@ class AdminScreen(MDScreen):
         # Update chip styles
         if hasattr(self, "chip_all") and self.chip_all:
             self.chip_all.style = "filled" if filter_name == "ALL" else "tonal"
-            self.chip_del.style = "filled" if filter_name == "DELIVERED" else "tonal"
-            self.chip_act.style = "filled" if filter_name == "ACTIVE" else "tonal"
-            self.chip_can.style = "filled" if filter_name == "CANCELLED" else "tonal"
+            self.chip_del.style = "success" if filter_name == "DELIVERED" else "tonal"
+            self.chip_act.style = "offer" if filter_name == "ACTIVE" else "tonal"
+            self.chip_can.style = "danger" if filter_name == "CANCELLED" else "tonal"
         self._update_orders_list(all_orders)
 
     def _on_search_text_changed(self, instance, text: str):
@@ -1374,6 +1386,7 @@ class AdminScreen(MDScreen):
         # 3. Category Selector (Material Design 3 Unified Select Card)
         self._selected_category = cat or "Menú Normal"
         self.input_cat = type("DummyCat", (), {"text": self._selected_category})()
+        cat_st = get_category_style(self._selected_category)
 
         self.cat_select_card = MDCard(
             orientation="horizontal",
@@ -1384,19 +1397,19 @@ class AdminScreen(MDScreen):
             style="outlined",
             theme_bg_color="Custom",
             md_bg_color=[1.0, 1.0, 1.0, 1.0],
-            line_color=[0.75, 0.82, 0.90, 1.0],
+            line_color=[*cat_st["rgba"][:3], 0.35],
             radius=[dp(10), dp(10), dp(10), dp(10)],
             elevation=0,
         )
         self.cat_select_card.bind(on_release=lambda x: self._show_category_picker())
 
-        cat_icon = MDIcon(
-            icon="tag-outline",
+        self.cat_icon = MDIcon(
+            icon=cat_st.get("icon", "tag-outline"),
             pos_hint={"center_y": 0.5},
             size_hint=(None, None),
             size=(dp(22), dp(22)),
             theme_icon_color="Custom",
-            icon_color=UCT_NAVY,
+            icon_color=cat_st["rgba"],
         )
         cat_text_box = MDBoxLayout(orientation="vertical", spacing=dp(1), pos_hint={"center_y": 0.5})
         cat_hint = MDLabel(
@@ -1408,7 +1421,7 @@ class AdminScreen(MDScreen):
             height=dp(14),
         )
         self.cat_value_label = MDLabel(
-            text=f"[b][color=#1E293B]{self._selected_category}[/color][/b]",
+            text=f"[b][color={cat_st['hex']}]{self._selected_category}[/color][/b]",
             markup=True,
             font_style="Body",
             role="medium",
@@ -1418,18 +1431,18 @@ class AdminScreen(MDScreen):
         cat_text_box.add_widget(cat_hint)
         cat_text_box.add_widget(self.cat_value_label)
 
-        chevron_icon = MDIcon(
+        self.cat_chevron = MDIcon(
             icon="menu-down",
             pos_hint={"center_y": 0.5},
             size_hint=(None, None),
             size=(dp(24), dp(24)),
             theme_icon_color="Custom",
-            icon_color=UCT_NAVY,
+            icon_color=cat_st["rgba"],
         )
 
-        self.cat_select_card.add_widget(cat_icon)
+        self.cat_select_card.add_widget(self.cat_icon)
         self.cat_select_card.add_widget(cat_text_box)
-        self.cat_select_card.add_widget(chevron_icon)
+        self.cat_select_card.add_widget(self.cat_chevron)
         fields_box.add_widget(self.cat_select_card)
 
         # 4. Price & Stock Row
@@ -1688,14 +1701,17 @@ class AdminScreen(MDScreen):
         current_val = self._selected_category if hasattr(self, "_selected_category") else (self.input_cat.text.strip() if self.input_cat else "")
         for cat_name, cat_icon in categories:
             is_selected = (current_val == cat_name)
+            cat_st = get_category_style(cat_name)
             btn = create_button(
                 text=cat_name,
-                icon=cat_icon,
+                icon=cat_st.get("icon", cat_icon),
                 style="filled" if is_selected else "tonal",
                 size_hint=(1, None),
                 height=dp(36),
                 on_release=lambda x, c=cat_name: self._select_category(c),
             )
+            if is_selected:
+                btn.md_bg_color = cat_st["rgba"]
             cats_list.add_widget(btn)
 
         scroll_cats.add_widget(cats_list)
@@ -1714,10 +1730,18 @@ class AdminScreen(MDScreen):
 
     def _select_category(self, cat_name: str):
         self._selected_category = cat_name
+        cat_st = get_category_style(cat_name)
         if hasattr(self, "input_cat") and self.input_cat:
             self.input_cat.text = cat_name
         if hasattr(self, "cat_value_label") and self.cat_value_label:
-            self.cat_value_label.text = f"[b][color=#1E293B]{cat_name}[/color][/b]"
+            self.cat_value_label.text = f"[b][color={cat_st['hex']}]{cat_name}[/color][/b]"
+        if hasattr(self, "cat_icon") and self.cat_icon:
+            self.cat_icon.icon = cat_st.get("icon", "tag-outline")
+            self.cat_icon.icon_color = cat_st["rgba"]
+        if hasattr(self, "cat_chevron") and self.cat_chevron:
+            self.cat_chevron.icon_color = cat_st["rgba"]
+        if hasattr(self, "cat_select_card") and self.cat_select_card:
+            self.cat_select_card.line_color = [*cat_st["rgba"][:3], 0.35]
         self._hide_modals()
 
     # --- Deletion modal confirmation ---
