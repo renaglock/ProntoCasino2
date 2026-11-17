@@ -8,6 +8,7 @@ from punto_casino.models.user import UserRole
 from punto_casino.repositories.product_repository import InMemoryProductRepository
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
+from punto_casino.services.analytics_service import items_de, registrar_evento
 from punto_casino.utils.qr_generator import generate_pickup_payload
 
 # Plazo para retirar y pagar una reserva sin pago; pasado eso ya no cuenta como reserva activa.
@@ -27,6 +28,7 @@ class OrderService:
         self.order_repo = order_repo
         self.auth_service = auth_service
         self._cart: Dict[str, int] = {}  # product_id -> quantity
+        self._cart_started_at: Optional[datetime] = None  # inicio del flujo de pedido (analítica)
         existing_orders = self.order_repo.get_all()
         self._next_comanda_number: int = (
             max([o.comanda_number for o in existing_orders], default=100) + 1
@@ -48,6 +50,8 @@ class OrderService:
                 f"Stock insuficiente para '{product.name}'. Disponible: {product.stock}"
             )
 
+        if not self._cart:
+            self._cart_started_at = datetime.now()
         self._cart[product_id] = target_qty
 
     def remove_from_cart(self, product_id: str, quantity: Optional[int] = None) -> None:
@@ -62,6 +66,7 @@ class OrderService:
     def clear_cart(self) -> None:
         """Empty the active shopping cart."""
         self._cart.clear()
+        self._cart_started_at = None
 
     def get_cart_items(self) -> List[OrderItem]:
         """Convert cart dictionary to a list of OrderItem instances."""
@@ -140,8 +145,28 @@ class OrderService:
         )
 
         self.order_repo.add(order)
+        segundos = round((datetime.now() - self._cart_started_at).total_seconds()) if self._cart_started_at else None
+        registrar_evento("pedido_creado", {
+            "pedido": order_id,
+            "medio_pago": payment_method,
+            "es_reserva": not is_paid,
+            "total": order.total,
+            "items": items_de(order),
+            "segundos_flujo": segundos,
+        })
         self.clear_cart()
         return order
+
+    def expire_reservations(self) -> int:
+        """Cancela las reservas sin pago que pasaron la ventana de 1 hora y devuelve su stock."""
+        cutoff = datetime.now() - RESERVATION_WINDOW
+        vencidas = [
+            o for o in self.order_repo.get_all()
+            if o.status == OrderStatus.PENDING and not o.is_paid and o.created_at < cutoff
+        ]
+        for o in vencidas:
+            self.cancel_order(o.id_pedido, motivo="reserva_vencida")
+        return len(vencidas)
 
     def get_active_reservation(self) -> Optional[Order]:
         """Reserva sin pagar del usuario actual creada dentro de la última hora (máximo 1)."""
@@ -165,7 +190,7 @@ class OrderService:
             return self.order_repo.get_all()
         return [o for o in self.order_repo.get_all() if o.customer_id == current_user.id_usuario]
 
-    def cancel_order(self, order_id: str) -> bool:
+    def cancel_order(self, order_id: str, motivo: str = "cancelado_cliente") -> bool:
         """El cliente solo cancela reservas sin pagar: devuelve el stock y no abona saldo.
         Las comandas pagadas ya están en cocina; se anulan en caja."""
         order = self.order_repo.get_by_id(order_id)
@@ -178,6 +203,9 @@ class OrderService:
             if prod:
                 self.product_repo.update_stock(prod.id_producto, prod.stock + item.quantity)
 
+        registrar_evento("pedido_perdido", {
+            "pedido": order_id, "motivo": motivo, "monto": order.total, "items": items_de(order),
+        })
         return self.order_repo.update_status(order_id, OrderStatus.CANCELLED)
 
     def mark_delivered(self, order_id: str) -> bool:
@@ -187,6 +215,12 @@ class OrderService:
             return False
         if order.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED, OrderStatus.DELIVERED):
             return False
+        if not order.is_paid:
+            registrar_evento("reserva_retirada", {
+                "pedido": order_id,
+                "medio_pago": order.payment_method,
+                "minutos_hasta_retiro": round((datetime.now() - order.created_at).total_seconds() / 60),
+            })
         return self.order_repo.update_status(order_id, OrderStatus.DELIVERED)
 
     def get_sales_metrics(self) -> Dict[str, Any]:

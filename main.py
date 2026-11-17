@@ -1,6 +1,7 @@
 """Pronto Casino UCT - Main Mobile Application with Smartphone Resolution and Login Flow."""
 
 import os
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.metrics import dp
@@ -60,6 +61,10 @@ class ProntoCasinoApp(MDApp):
         self.auth_service = AuthService(self.user_repo)
         self.order_service = OrderService(self.product_repo, self.order_repo, self.auth_service)
         self.cashier_service = CashierService(self.product_repo, self.order_repo, self.auth_service)
+
+        # Reservas sin pago vencen a la hora: al abrir la app y cada minuto
+        self.order_service.expire_reservations()
+        Clock.schedule_interval(lambda dt: self.order_service.expire_reservations(), 60)
 
         # Root Mobile Layout
         self.master_layout = MDBoxLayout(

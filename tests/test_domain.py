@@ -12,6 +12,7 @@ from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.cashier_service import CashierService
+from punto_casino.services import analytics_service
 
 
 class TestDomainServices(unittest.TestCase):
@@ -25,7 +26,7 @@ class TestDomainServices(unittest.TestCase):
                     os.remove(p)
                 except OSError:
                     pass
-        for p in (getattr(self, "test_prod_file", None), getattr(self, "test_order_file", None)):
+        for p in (getattr(self, "test_prod_file", None), getattr(self, "test_order_file", None), "test_temp_analitica.json"):
             if p and os.path.exists(p):
                 try:
                     os.remove(p)
@@ -37,6 +38,9 @@ class TestDomainServices(unittest.TestCase):
         self.test_prod_file = "test_temp_productos.json"
         self.test_order_file = "test_temp_pedidos.json"
         self._clean_test_files()
+        # Nunca escribir analítica en data/ durante las pruebas
+        self._analytics_original = analytics_service.ARCHIVO
+        analytics_service.ARCHIVO = "test_temp_analitica.json"
         self.db_manager = DatabaseManager(self.test_db)
         self.user_repo = UserRepository(self.db_manager)
         self.prod_repo = InMemoryProductRepository(file_path=self.test_prod_file)
@@ -46,6 +50,7 @@ class TestDomainServices(unittest.TestCase):
         self.cashier_service = CashierService(self.prod_repo, self.order_repo, self.auth_service)
 
     def tearDown(self):
+        analytics_service.ARCHIVO = self._analytics_original
         self._clean_test_files()
 
     def test_auth_quick_login(self):
@@ -281,6 +286,41 @@ class TestDomainServices(unittest.TestCase):
         # Pasada la hora, la reserva ya no cuenta como activa
         self.order_repo.get_by_id(first.id_pedido).created_at -= timedelta(hours=1, minutes=1)
         self.assertIsNone(self.order_service.get_active_reservation())
+
+    def test_analytics_mjv_events_and_reservation_expiry(self):
+        from datetime import timedelta
+        self.auth_service.quick_login("estudiante")
+        pid = self.prod_repo.get_all()[0].id_producto
+        stock0 = self.prod_repo.get_by_id(pid).stock
+
+        # Pedido pagado: registra productos, medio de pago y duración del flujo
+        self.order_service.add_to_cart(pid, 1)
+        self.order_service.checkout(PaymentMethod.BAES_JUNAEB.value, is_paid=True)
+
+        # Reserva sin pago que vence: vuelve el stock y queda como pérdida
+        self.order_service.add_to_cart(pid, 1)
+        vencida = self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        self.order_repo.get_by_id(vencida.id_pedido).created_at -= timedelta(hours=1, minutes=1)
+        self.assertGreaterEqual(self.order_service.expire_reservations(), 1)
+        self.assertEqual(self.order_repo.get_by_id(vencida.id_pedido).status, OrderStatus.CANCELLED)
+        self.assertEqual(self.prod_repo.get_by_id(pid).stock, stock0 - 1)
+
+        # Reserva que sí se retira y se paga en caja con Webpay
+        self.order_service.add_to_cart(pid, 1)
+        retirada = self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        ok, _, _ = self.cashier_service.process_qr_payment(retirada.id_pedido, PaymentMethod.WEBPAY_PLUS.value)
+        self.assertTrue(ok)
+
+        r = analytics_service.resumen()
+        self.assertEqual(r["mas_vendidos"][0][1], 3)
+        self.assertEqual(dict(r["medios_pago"]), {"BAES_JUNAEB": 1, "RESERVA_CAJA": 2})
+        self.assertIsNotNone(r["segundos_flujo_promedio"])
+        self.assertEqual(r["reservas_creadas"], 2)
+        self.assertEqual(r["reservas_retiradas"], 1)
+        self.assertGreaterEqual(r["reservas_vencidas"], 1)  # incluye reservas viejas de la semilla
+        self.assertEqual(r["tasa_retiro_pct"], 50.0)
+        self.assertEqual(r["medio_pago_al_retirar"], {"WEBPAY_PLUS": 1})
+        self.assertGreaterEqual(r["perdida_clp"], vencida.total)
 
     def test_cancel_and_reject_never_give_free_balance(self):
         self.auth_service.quick_login("estudiante")

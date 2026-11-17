@@ -1,10 +1,12 @@
 """Cashier service managing numbered comanda queues, approvals, and inventory toggling."""
 
+from datetime import datetime
 from typing import List, Optional
 from punto_casino.models.order import Order, OrderStatus, PaymentMethod, PAYMENT_METHOD_LABELS
 from punto_casino.repositories.product_repository import InMemoryProductRepository
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
+from punto_casino.services.analytics_service import items_de, registrar_evento
 
 
 class CashierService:
@@ -57,6 +59,9 @@ class CashierService:
         if order.is_paid and order.customer_role.upper() == "CLIENT" and order.customer_id:
             self.auth_service.refund_user_balance(order.customer_id, order.total)
 
+        registrar_evento("pedido_perdido", {
+            "pedido": order_id, "motivo": "rechazado_caja", "monto": order.total, "items": items_de(order),
+        })
         self.order_repo.update_status(order_id, OrderStatus.REJECTED)
         return self.order_repo.get_by_id(order_id)
 
@@ -97,7 +102,7 @@ class CashierService:
             return False, f"No se encontró la comanda con código '{clean_input}'.", None
 
         if order.status == OrderStatus.CANCELLED:
-            return False, f"La comanda #{order.comanda_number} fue cancelada por el cliente.", order
+            return False, f"La comanda #{order.comanda_number} fue cancelada o su reserva venció.", order
 
         if order.status == OrderStatus.DELIVERED:
             return False, f"La comanda #{order.comanda_number} ya fue entregada anteriormente.", order
@@ -109,6 +114,11 @@ class CashierService:
                 order.payment_method = payment_method
             else:
                 order.payment_method = PaymentMethod.EFECTIVO_POS.value
+            registrar_evento("reserva_retirada", {
+                "pedido": order.id_pedido,
+                "medio_pago": order.payment_method,
+                "minutos_hasta_retiro": round((datetime.now() - order.created_at).total_seconds() / 60),
+            })
 
         self.order_repo.update_status(order.id_pedido, OrderStatus.DELIVERED)
         updated_order = self.order_repo.get_by_id(order.id_pedido)
