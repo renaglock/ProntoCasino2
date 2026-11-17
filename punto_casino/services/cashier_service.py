@@ -53,8 +53,8 @@ class CashierService:
             if prod:
                 self.product_repo.update_stock(prod.id_producto, prod.stock + item.quantity)
 
-        # Refund student wallet if student
-        if order.customer_role.upper() == "CLIENT" and order.customer_id:
+        # Solo se abona saldo si la comanda estaba pagada (una reserva sin pagar no abona nada)
+        if order.is_paid and order.customer_role.upper() == "CLIENT" and order.customer_id:
             self.auth_service.refund_user_balance(order.customer_id, order.total)
 
         self.order_repo.update_status(order_id, OrderStatus.REJECTED)

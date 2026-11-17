@@ -257,13 +257,62 @@ class TestDomainServices(unittest.TestCase):
                 if os.path.exists(f):
                     os.remove(f)
 
-    def test_numpy_and_perf_counter_analytics(self):
+    def test_one_unpaid_reservation_per_user(self):
+        from datetime import timedelta
+        self.auth_service.quick_login("estudiante")
+        pid = self.prod_repo.get_all()[0].id_producto
+
+        # 2 platos en el carrito: no se puede reservar sin pagar
+        self.order_service.add_to_cart(pid, 2)
+        with self.assertRaises(ValueError):
+            self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        self.order_service.remove_from_cart(pid, 1)
+
+        first = self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        self.assertEqual(self.order_service.get_active_reservation().id_pedido, first.id_pedido)
+
+        # Segunda reserva sin pago: bloqueada; pagando con Webpay sí se puede
+        self.order_service.add_to_cart(pid, 1)
+        with self.assertRaises(ValueError):
+            self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        paid = self.order_service.checkout(PaymentMethod.WEBPAY_PLUS.value, is_paid=True)
+        self.assertTrue(paid.is_paid)
+
+        # Pasada la hora, la reserva ya no cuenta como activa
+        self.order_repo.get_by_id(first.id_pedido).created_at -= timedelta(hours=1, minutes=1)
+        self.assertIsNone(self.order_service.get_active_reservation())
+
+    def test_cancel_and_reject_never_give_free_balance(self):
+        self.auth_service.quick_login("estudiante")
+        user = self.auth_service.current_user
+        pid = self.prod_repo.get_all()[0].id_producto
+        balance0 = user.balance
+
+        # Cliente cancela reserva sin pagar: stock vuelve, saldo no cambia
+        stock0 = self.prod_repo.get_by_id(pid).stock
+        self.order_service.add_to_cart(pid, 1)
+        unpaid = self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        self.assertTrue(self.order_service.cancel_order(unpaid.id_pedido))
+        self.assertEqual(self.prod_repo.get_by_id(pid).stock, stock0)
+        self.assertEqual(self.auth_service.current_user.balance, balance0)
+
+        # Cliente no puede cancelar una comanda pagada
+        self.order_service.add_to_cart(pid, 1)
+        paid = self.order_service.checkout(PaymentMethod.WEBPAY_PLUS.value, is_paid=True)
+        self.assertFalse(self.order_service.cancel_order(paid.id_pedido))
+        self.assertEqual(self.order_repo.get_by_id(paid.id_pedido).status, OrderStatus.CONFIRMED)
+
+        # Caja rechaza reserva sin pagar: tampoco abona saldo
+        self.order_service.add_to_cart(pid, 1)
+        unpaid2 = self.order_service.checkout(PaymentMethod.EFECTIVO_POS.value, is_paid=False)
+        self.cashier_service.reject_order(unpaid2.id_pedido)
+        self.assertEqual(self.user_repo.get_by_id(user.id_usuario).balance, balance0)
+
+    def test_best_and_worst_seller(self):
         report = self.order_service.get_accounting_report()
-        self.assertIn("median_ticket", report)
-        self.assertIn("std_ticket", report)
-        self.assertIn("analytics_time_ms", report)
-        self.assertGreater(report["median_ticket"], 0)
-        self.assertGreaterEqual(report["analytics_time_ms"], 0.0)
+        best, worst = report["best_seller"], report["worst_seller"]
+        self.assertEqual(best["name"], report["top_dishes"][0]["name"])
+        self.assertLessEqual(worst["quantity"], best["quantity"])
 
     def test_accounting_report_metrics(self):
         report = self.order_service.get_accounting_report()
@@ -308,6 +357,13 @@ class TestDomainServices(unittest.TestCase):
         self.assertIn("status_pending", ADMIN_TOOLS_PALETTE)
         self.assertIn("status_cancelled", ADMIN_TOOLS_PALETTE)
         self.assertIn("rank_gold", ADMIN_TOOLS_PALETTE)
+
+    def test_product_search_ignores_accents_and_case(self):
+        names = {p.name for p in self.prod_repo.search("CAFE")}
+        self.assertIn("Café de Grano", names)
+        self.assertIn("Pastel de Choclo", {p.name for p in self.prod_repo.search("choclo")})
+        self.assertEqual(self.prod_repo.search("plato-que-no-existe"), [])
+        self.assertEqual(len(self.prod_repo.search("  ")), len(self.prod_repo.get_all()))
 
 
 if __name__ == "__main__":

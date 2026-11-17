@@ -3,6 +3,7 @@
 import json
 import os
 import time
+import unicodedata
 from typing import Dict, List, Optional
 from punto_casino.models.product import Product
 
@@ -178,12 +179,16 @@ class JsonProductRepository:
 
     def search(self, query: str) -> List[Product]:
         """Search products by name, category, or ingredients."""
-        q = query.strip().lower()
+        def fold(s: str) -> str:
+            # Ignora tildes y mayúsculas: "cafe" encuentra "Café".
+            return "".join(c for c in unicodedata.normalize("NFD", s.lower()) if not unicodedata.combining(c))
+
+        q = fold(query.strip())
         if not q:
             return self.get_all()
         return [
             p for p in self.get_all()
-            if q in p.name.lower() or q in p.category.lower() or q in p.ingredients.lower()
+            if q in fold(p.name) or q in fold(p.category) or q in fold(p.ingredients)
         ]
 
     def update(self, product: Product) -> bool:

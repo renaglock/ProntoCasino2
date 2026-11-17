@@ -1,5 +1,6 @@
 from kivy.clock import Clock
 from kivy.metrics import dp
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -7,6 +8,7 @@ from kivymd.uix.button import MDButtonIcon
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.screen import MDScreen
+from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon
 
 from punto_casino.core.config import config, get_category_style
 from punto_casino.models.order import (
@@ -19,6 +21,7 @@ from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
+    ICON_OK, ICON_WARN,
     create_button,
     create_offer_badge,
     create_category_pill,
@@ -39,7 +42,9 @@ class CatalogScreen(MDScreen):
         self.auth_service = auth_service
         self.on_navigate = on_navigate
         self.selected_category = "Todos"
-        self.selected_payment_method = PaymentMethod.BAES_JUNAEB.value
+        self.search_text = ""
+        self.selected_payment_method = PaymentMethod.EFECTIVO_POS.value
+        self._show_online_methods = False  # pasarela: False = reservar sin pagar, True = medios en línea
         self._loaded_category = None
         self._is_dirty = True
 
@@ -95,6 +100,32 @@ class CatalogScreen(MDScreen):
         banner.add_widget(location_label)
         banner.add_widget(self.balance_label)
         self.root_layout.add_widget(banner)
+
+        # Search bar, fixed above the scroll
+        search_field = MDTextField(
+            MDTextFieldLeadingIcon(icon="magnify"),
+            mode="outlined",
+            multiline=False,
+            height=dp(44),  # KivyMD fija 56dp; igualamos al contenedor para no chocar con el banner
+        )
+        search_field.bind(text=self._on_search_text_changed)
+        # Placeholder fijo encima del campo: se oculta al hacer clic, sin animación flotante
+        placeholder = MDLabel(
+            text="Buscar plato o ingrediente...",
+            theme_text_color="Custom",
+            text_color=[0.45, 0.5, 0.55, 1],
+            pos=(dp(52), 0),
+            size_hint=(1, 1),
+        )
+
+        def _toggle_placeholder(*_):
+            placeholder.opacity = 0 if (search_field.focus or search_field.text) else 1
+
+        search_field.bind(focus=_toggle_placeholder, text=_toggle_placeholder)
+        search_box = RelativeLayout(size_hint_y=None, height=dp(44))
+        search_box.add_widget(search_field)
+        search_box.add_widget(placeholder)
+        self.root_layout.add_widget(search_box)
 
         # 2. Category Tabs Horizontal Scroll (With crisp icons and no square glyphs)
         cat_scroll = ScrollView(size_hint=(1, None), height=dp(42), do_scroll_x=True, do_scroll_y=False)
@@ -256,7 +287,11 @@ class CatalogScreen(MDScreen):
         )
         self.products_container.add_widget(self.desc_label)
 
-        products = self.order_service.product_repo.get_by_category(self.selected_category)
+        repo = self.order_service.product_repo
+        products = repo.get_by_category(self.selected_category)
+        if self.search_text.strip():
+            found = {p.id_producto for p in repo.search(self.search_text)}
+            products = [p for p in products if p.id_producto in found]
 
         # Standardized Category Title Header
         self.products_container.add_widget(
@@ -422,6 +457,10 @@ class CatalogScreen(MDScreen):
 
         self._update_cart_label()
 
+    def _on_search_text_changed(self, instance, text: str):
+        self.search_text = text
+        self.refresh_catalog()
+
     def _on_select_category(self, category: str):
         self.selected_category = category
         self.status_label.text = f"Filtrando: {category}"
@@ -503,12 +542,12 @@ class CatalogScreen(MDScreen):
             on_release=lambda x: self._hide_modal(),
         )
         pay_btn = create_button(
-            text="Pagar",
-            icon="credit-card",
+            text="Continuar",
+            icon="arrow-right",
             style="offer",
             size_hint=(0.52, None),
             height=dp(34),
-            on_release=lambda x: self._show_payment_gateway_modal(),
+            on_release=lambda x: self._set_gateway_view(online=False),
         )
         modal_btns.add_widget(cancel_btn)
         modal_btns.add_widget(pay_btn)
@@ -542,10 +581,35 @@ class CatalogScreen(MDScreen):
         if self.bottom_spacer not in self.root_layout.children:
             self.root_layout.add_widget(self.bottom_spacer, index=0)
 
+        online = self._show_online_methods
+        reservation = None if online else self.order_service.get_active_reservation()
+        too_many = self.order_service.get_cart_count() > 1
+        can_reserve = reservation is None and not too_many
+        if online:
+            options = [
+                (PaymentMethod.WEBPAY_PLUS.value, "Webpay Plus", "Transbank: débito, crédito y CuentaRUT", "credit-card", True),
+                (PaymentMethod.BAES_JUNAEB.value, "Beca BAES", "No disponible por ahora", "school", False),
+                (PaymentMethod.FINTOC_KHIPU.value, "Transferencia Bancaria", "No disponible por ahora", "bank-transfer", False),
+                (PaymentMethod.BECA_INTERNA.value, "Beca DAE", "No disponible por ahora", "card-account-details-star", False),
+            ]
+        else:
+            if reservation:
+                reserve_desc = f"Ya tienes la reserva #{reservation.comanda_number} activa"
+            elif too_many:
+                reserve_desc = "Solo 1 plato por reserva sin pago"
+            else:
+                reserve_desc = "Pagas al retirar en caja"
+            options = [
+                (PaymentMethod.EFECTIVO_POS.value, "Reservar sin pagar", reserve_desc, "cash-register", can_reserve),
+            ]
+        options_h = len(options) * dp(46) + (len(options) - 1) * dp(5)
+        # padding 24 + título 24 + monto 20 + subtítulo 18 + acciones 36 = 122; spacing 6 entre hijos
+        modal_h = dp(122) + options_h + (dp(24) if online else dp(84) + dp(36))
+
         self.payment_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(360),
+            height=modal_h,
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(6),
             style="outlined",
@@ -576,7 +640,7 @@ class CatalogScreen(MDScreen):
             height=dp(20),
         )
         p_subtitle = MDLabel(
-            text="[color=#64748B]Selecciona tu medio de pago:[/color]",
+            text=f"[color=#64748B]{'Medios de pago en línea:' if online else 'Medio de pago oficial:'}[/color]",
             markup=True,
             halign="center",
             font_style="Body",
@@ -589,46 +653,43 @@ class CatalogScreen(MDScreen):
         self.payment_modal.add_widget(p_subtitle)
 
         # 2. Options List
-        options = [
-            (
-                PaymentMethod.BAES_JUNAEB.value,
-                "Beca BAES",
-                "Edenred y Pluxee Sodexo",
-                "school",
-            ),
-            (
-                PaymentMethod.WEBPAY_PLUS.value,
-                "Webpay Plus",
-                "Tarjetas de débito, crédito y CuentaRUT",
-                "credit-card",
-            ),
-            (
-                PaymentMethod.FINTOC_KHIPU.value,
-                "Transferencia Bancaria",
-                "Fintoc y Khipu directo",
-                "bank-transfer",
-            ),
-            (
-                PaymentMethod.BECA_INTERNA.value,
-                "Beca DAE o Mesón",
-                "Convenio institucional o pago en caja",
-                "card-account-details-star",
-            ),
-        ]
-
         self.options_container = MDBoxLayout(
             orientation="vertical",
             spacing=dp(5),
             size_hint_y=None,
-            height=dp(205),
+            height=options_h,
         )
 
-        for method_val, name, desc, icon_name in options:
-            is_active = (self.selected_payment_method == method_val)
-            card_opt = self._build_payment_option_card(method_val, name, desc, icon_name, is_active)
+        for method_val, name, desc, icon_name, enabled in options:
+            is_active = enabled and self.selected_payment_method == method_val
+            card_opt = self._build_payment_option_card(method_val, name, desc, icon_name, is_active, enabled)
             self.options_container.add_widget(card_opt)
 
         self.payment_modal.add_widget(self.options_container)
+
+        if not online:
+            alert_lbl = MDLabel(
+                text=(
+                    f"[color=#D97706]{ICON_WARN} Tienes [b]1 hora[/b] para retirar y pagar en caja; si no, la reserva se pierde. "
+                    "Máximo [b]1 reserva sin pago de 1 plato[/b]: para más, paga por adelantado.[/color]"
+                ),
+                markup=True,
+                font_style="Body",
+                role="small",
+                size_hint_y=None,
+                height=dp(48),
+            )
+            self.payment_modal.add_widget(alert_lbl)
+            self.payment_modal.add_widget(
+                create_button(
+                    text="Ver medios de pago",
+                    icon="credit-card-outline",
+                    style="outlined",
+                    size_hint=(1, None),
+                    height=dp(36),
+                    on_release=lambda x: self._set_gateway_view(online=True),
+                )
+            )
 
         # 3. Actions Row
         actions_row = MDBoxLayout(
@@ -638,29 +699,33 @@ class CatalogScreen(MDScreen):
             height=dp(36),
         )
         btn_back = create_button(
-            text="Volver",
+            text="Atrás" if online else "Volver",
             style="tonal",
             size_hint=(0.35, None),
             height=dp(36),
-            on_release=lambda x: self._hide_modal(),
+            on_release=(lambda x: self._set_gateway_view(online=False)) if online else (lambda x: self._hide_modal()),
         )
         btn_pay = create_button(
-            text=f"Pagar {format_currency(total)}",
-            icon="credit-card-check",
+            text=f"Pagar {format_currency(total)}" if online else "Reservar Comanda",
+            icon="credit-card-check" if online else "calendar-check",
             style="offer",
             size_hint=(0.65, None),
             height=dp(36),
             on_release=lambda x: self._execute_payment(),
         )
+        btn_pay.disabled = not online and not can_reserve
         actions_row.add_widget(btn_back)
         actions_row.add_widget(btn_pay)
         self.payment_modal.add_widget(actions_row)
 
         self.root_layout.add_widget(self.payment_modal, index=1)
 
-    def _build_payment_option_card(self, method_val: str, name: str, desc: str, icon_name: str, is_active: bool) -> MDCard:
+    def _build_payment_option_card(
+        self, method_val: str, name: str, desc: str, icon_name: str, is_active: bool, enabled: bool = True
+    ) -> MDCard:
         bg_col = [0.90, 0.94, 0.98, 1.0] if is_active else [1.0, 1.0, 1.0, 1.0]
         border_col = [0.04, 0.22, 0.44, 0.9] if is_active else [0.88, 0.92, 0.96, 1.0]
+        extra = {"on_release": lambda x, m=method_val: self._select_payment_method(m)} if enabled else {}
 
         card = MDCard(
             orientation="horizontal",
@@ -674,7 +739,8 @@ class CatalogScreen(MDScreen):
             radius=[dp(10), dp(10), dp(10), dp(10)],
             line_color=border_col,
             elevation=0,
-            on_release=lambda x, m=method_val: self._select_payment_method(m),
+            opacity=1 if enabled else 0.45,  # medios deshabilitados: visibles pero no seleccionables
+            **extra,
         )
 
         icon_box = MDBoxLayout(size_hint=(None, 1), width=dp(28))
@@ -733,19 +799,34 @@ class CatalogScreen(MDScreen):
         self.selected_payment_method = method_val
         self._show_payment_gateway_modal()
 
+    def _set_gateway_view(self, online: bool):
+        """Alterna la pasarela entre 'Reservar sin pagar' y la lista de medios en línea."""
+        self._show_online_methods = online
+        self.selected_payment_method = (
+            PaymentMethod.WEBPAY_PLUS.value if online else PaymentMethod.EFECTIVO_POS.value
+        )
+        self._show_payment_gateway_modal()
+
     def _execute_payment(self):
         self._hide_modal()
         try:
             pay_method = self.selected_payment_method
             pay_label = PAYMENT_METHOD_LABELS.get(pay_method, pay_method)
+            is_paid = pay_method != PaymentMethod.EFECTIVO_POS.value
             order = self.order_service.checkout(
                 payment_method=pay_method,
-                is_paid=True,
+                is_paid=is_paid,
             )
-            self.status_label.text = (
-                f"[color=#10B981]✓ ¡Pago exitoso con {pay_label}! "
-                f"Comanda #{order.comanda_number} en preparación. Retira con tu QR.[/color]"
-            )
+            if is_paid:
+                self.status_label.text = (
+                    f"[color=#10B981]{ICON_OK} ¡Pago exitoso con {pay_label}! "
+                    f"Comanda #{order.comanda_number} en preparación. Retira con tu QR.[/color]"
+                )
+            else:
+                self.status_label.text = (
+                    f"[color=#10B981]{ICON_OK} Comanda #{order.comanda_number} reservada ({order.id_pedido}). "
+                    f"Tienes 1 hora para retirar y pagar en caja.[/color]"
+                )
             self.refresh_catalog()
             if self.on_navigate:
                 Clock.schedule_once(lambda dt: self.on_navigate("reservations"), 0.5)

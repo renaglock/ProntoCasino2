@@ -32,7 +32,15 @@ from punto_casino.utils.qr_generator import (
     parse_pickup_payload,
     generate_pickup_payload,
 )
-from punto_casino.views.components.ui_elements import create_button, VIBRANT_ORANGE, CRIMSON_RED, UCT_NAVY, WHITE
+from punto_casino.views.components.ui_elements import (
+    ICON_OK, ICON_NO,
+    create_button,
+    set_button_style,
+    VIBRANT_ORANGE,
+    CRIMSON_RED,
+    UCT_NAVY,
+    WHITE,
+)
 
 
 class CashierScreen(MDScreen):
@@ -223,7 +231,7 @@ class CashierScreen(MDScreen):
     def _build_comanda_card(self, order: Order, is_history: bool = False) -> MDCard:
         pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
         if order.is_paid:
-            status_text = f"✓ Pagado • {pay_lbl}"
+            status_text = f"{ICON_OK} Pagado • {pay_lbl}"
             status_color = "#10B981"
         else:
             status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
@@ -382,10 +390,11 @@ class CashierScreen(MDScreen):
         if self.bottom_spacer not in self.root_layout.children:
             self.root_layout.add_widget(self.bottom_spacer, index=0)
 
+        self._scanner_pay_method = None  # medio elegido al cobrar una reserva sin pagar
         self.scanner_modal = MDCard(
             orientation="vertical",
             size_hint_y=None,
-            height=dp(455),
+            height=dp(460),
             padding=[dp(16), dp(12), dp(16), dp(12)],
             spacing=dp(6),
             style="outlined",
@@ -411,7 +420,7 @@ class CashierScreen(MDScreen):
         self.cam_container = MDCard(
             orientation="vertical",
             size_hint=(1, None),
-            height=dp(160),
+            height=dp(140),
             style="filled",
             theme_bg_color="Custom",
             md_bg_color=[0.93, 0.96, 0.99, 1.0],
@@ -480,12 +489,32 @@ class CashierScreen(MDScreen):
             font_style="Body",
             role="small",
             size_hint_y=None,
-            height=dp(20),
+            height=dp(34),
             markup=True,
         )
-        if prefill_id:
-            self._on_verify_code()
         self.scanner_modal.add_widget(self.scanner_feedback_lbl)
+
+        # Medio de pago en caja: solo visible si la comanda no viene pagada
+        self.pay_row = MDBoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(32))
+        self.pay_btns = {}
+        for method, label in (
+            (PaymentMethod.WEBPAY_PLUS.value, "Webpay"),
+            (PaymentMethod.BAES_JUNAEB.value, "Beca BAES"),
+            (PaymentMethod.EFECTIVO_POS.value, "Efectivo"),
+        ):
+            btn = create_button(
+                text=label,
+                style="tonal",
+                size_hint=(0.333, None),
+                height=dp(32),
+                on_release=lambda x, m=method: self._select_scanner_pay_method(m),
+            )
+            self.pay_btns[method] = btn
+            self.pay_row.add_widget(btn)
+        self._set_pay_row_visible(False)
+        self.scanner_modal.add_widget(self.pay_row)
+        if prefill_id:
+            self._on_verify_code(auto_deliver=False)
 
         # 5. 2-Tier Modal Actions (High contrast, vector icons):
         charge_btn = create_button(
@@ -588,9 +617,6 @@ class CashierScreen(MDScreen):
                 self.qr_text_input.text = order_id
                 self._stop_camera()
                 self._on_verify_code()
-                self.scanner_feedback_lbl.text = (
-                    f"[b][color=#10B981]✓ ¡QR Leído con Éxito! ({order_id})[/color][/b]"
-                )
         except Exception:
             pass
 
@@ -633,35 +659,60 @@ class CashierScreen(MDScreen):
         parsed = parse_pickup_payload(payload)
         self.qr_text_input.text = parsed["order_id"]
         self._on_verify_code()
-        self.scanner_feedback_lbl.text = (
-            f"[b][color=#10B981]✓ QR Leído por OpenCV: Comanda #{order.comanda_number} ({order.customer_name})[/color][/b]"
-        )
 
-    def _on_verify_code(self):
+    def _find_scanned_order(self, val: str):
+        parsed = parse_pickup_payload(val)
+        order_id = parsed["order_id"] if (parsed and "order_id" in parsed) else val
+        return order_id, self.cashier_service.order_repo.get_by_id(order_id)
+
+    def _set_pay_row_visible(self, visible: bool):
+        self.pay_row.opacity = 1 if visible else 0
+        self.pay_row.disabled = not visible
+
+    def _select_scanner_pay_method(self, method: str):
+        self._scanner_pay_method = method
+        for m, btn in self.pay_btns.items():
+            set_button_style(btn, "filled" if m == method else "tonal")
+
+    def _on_verify_code(self, auto_deliver: bool = True):
+        """Pagada → se entrega al instante (auto_deliver). Sin pagar → pide medio de pago en caja."""
+        self._set_pay_row_visible(False)
         val = self.qr_text_input.text.strip()
         if not val:
             self.scanner_feedback_lbl.text = "[color=#EF4444]Ingresa un código de pedido o QR.[/color]"
             return
 
-        parsed = parse_pickup_payload(val)
-        order_id = parsed["order_id"] if (parsed and "order_id" in parsed) else val
-
-        order = self.cashier_service.order_repo.get_by_id(order_id)
+        order_id, order = self._find_scanned_order(val)
         if not order:
             self.scanner_feedback_lbl.text = f"[color=#EF4444]No existe orden con código {order_id}[/color]"
             return
 
+        who = f"Comanda #{order.comanda_number} ({order.customer_name})"
+        if order.status == OrderStatus.DELIVERED:
+            self.scanner_feedback_lbl.text = f"[b][color=#EF4444]{ICON_NO} {who} ya fue entregada.[/color][/b]"
+            return
+        if order.status in (OrderStatus.CANCELLED, OrderStatus.REJECTED):
+            self.scanner_feedback_lbl.text = f"[b][color=#EF4444]{ICON_NO} {who} está cancelada.[/color][/b]"
+            return
+
         pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
         if order.is_paid:
+            if not auto_deliver:
+                self.scanner_feedback_lbl.text = f"[b][color=#10B981]{ICON_OK} PAGADO • {pay_lbl}[/color][/b] - {who}"
+                return
+            self.cashier_service.process_qr_payment(order.id_pedido)
             self.scanner_feedback_lbl.text = (
-                f"[b][color=#10B981]✓ PAGADO • {pay_lbl}[/color][/b] - "
-                f"Comanda #{order.comanda_number} ({order.customer_name}) • {format_currency(order.total)}"
+                f"[b][color=#10B981]{ICON_OK} Entregado · Pagado con {pay_lbl}[/color][/b]\n{who}"
             )
-        else:
-            self.scanner_feedback_lbl.text = (
-                f"[b][color=#D97706]Pendiente en Mesón ({format_currency(order.total)})[/color][/b] - "
-                f"Comanda #{order.comanda_number} ({order.customer_name})"
-            )
+            self.refresh_orders()
+            return
+
+        self._select_scanner_pay_method(None)
+        self._set_pay_row_visible(True)
+        self.scanner_feedback_lbl.text = (
+            f"[b][color=#D97706]Cobrar {format_currency(order.total)} en caja:[/color][/b] "
+            f"elige el medio de pago • {who}"
+        )
 
     def _on_execute_charge(self):
         val = self.qr_text_input.text.strip()
@@ -669,9 +720,16 @@ class CashierScreen(MDScreen):
             self.scanner_feedback_lbl.text = "[color=#EF4444]Ingresa un código de pedido o escanea QR.[/color]"
             return
 
+        _, scanned = self._find_scanned_order(val)
+        if scanned and not scanned.is_paid and not self._scanner_pay_method:
+            self._on_verify_code()
+            if self.pay_row.opacity:
+                self.scanner_feedback_lbl.text = "[b][color=#EF4444]Selecciona el medio de pago antes de cobrar.[/color][/b]"
+            return
+
         success, msg, order = self.cashier_service.process_qr_payment(
             val,
-            payment_method=self.selected_pos_payment,
+            payment_method=self._scanner_pay_method,
         )
         if success:
             self.status_label.text = f"[color=#10B981]{msg}[/color]"
@@ -721,7 +779,7 @@ class CashierScreen(MDScreen):
         )
         c_msg = MDLabel(
             text=f"Comanda [b]#{order.comanda_number}[/b] • Cliente: [b]{order.customer_name}[/b]\n"
-                 f"Total: [b]{format_currency(order.total)}[/b] • [color=#10B981][b]✓ Pagado con {pay_lbl}[/b][/color]\n"
+                 f"Total: [b]{format_currency(order.total)}[/b] • [color=#10B981][b]{ICON_OK} Pagado con {pay_lbl}[/b][/color]\n"
                  f"¿Entregar productos al alumno en mesón?",
             markup=True,
             halign="center",
@@ -887,7 +945,7 @@ class CashierScreen(MDScreen):
     def _ask_reject(self, order: Order):
         self._hide_modals()
         self.cashier_service.reject_order(order.id_pedido)
-        self.status_label.text = f"[color=#EF4444]Comanda #{order.comanda_number} rechazada y saldo devuelto.[/color]"
+        self.status_label.text = f"[color=#EF4444]Comanda #{order.comanda_number} rechazada.[/color]"
         self.refresh_orders()
 
     def _hide_modals(self):

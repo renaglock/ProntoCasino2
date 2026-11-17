@@ -1,6 +1,7 @@
 """Order service orchestrating cart, reservations, and numbered comandas."""
 
 import uuid
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from punto_casino.models.order import Order, OrderItem, OrderStatus, PaymentMethod
 from punto_casino.models.user import UserRole
@@ -8,6 +9,9 @@ from punto_casino.repositories.product_repository import InMemoryProductReposito
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.qr_generator import generate_pickup_payload
+
+# Plazo para retirar y pagar una reserva sin pago; pasado eso ya no cuenta como reserva activa.
+RESERVATION_WINDOW = timedelta(hours=1)
 
 
 class OrderService:
@@ -93,6 +97,11 @@ class OrderService:
         if not items:
             raise ValueError("El carrito está vacío. Agrega platos antes de reservar.")
 
+        if not is_paid and self.get_cart_count() > 1:
+            raise ValueError("La reserva sin pago es de 1 solo plato. Para más, paga por adelantado con Webpay.")
+        if not is_paid and self.get_active_reservation():
+            raise ValueError("Ya tienes una reserva sin pagar. Para otro pedido, paga por adelantado con Webpay.")
+
         total = self.get_cart_total()
         current_user = self.auth_service.current_user
 
@@ -134,6 +143,21 @@ class OrderService:
         self.clear_cart()
         return order
 
+    def get_active_reservation(self) -> Optional[Order]:
+        """Reserva sin pagar del usuario actual creada dentro de la última hora (máximo 1)."""
+        user = self.auth_service.current_user
+        cutoff = datetime.now() - RESERVATION_WINDOW
+        return next(
+            (
+                o for o in self.order_repo.get_all()
+                if o.customer_id == user.id_usuario
+                and not o.is_paid
+                and o.status == OrderStatus.PENDING
+                and o.created_at >= cutoff
+            ),
+            None,
+        )
+
     def get_user_orders(self) -> List[Order]:
         """Fetch active orders for current authenticated user."""
         current_user = self.auth_service.current_user
@@ -142,11 +166,10 @@ class OrderService:
         return [o for o in self.order_repo.get_all() if o.customer_id == current_user.id_usuario]
 
     def cancel_order(self, order_id: str) -> bool:
-        """Cancel a pending or confirmed order, restoring dishes stock and student balance."""
+        """El cliente solo cancela reservas sin pagar: devuelve el stock y no abona saldo.
+        Las comandas pagadas ya están en cocina; se anulan en caja."""
         order = self.order_repo.get_by_id(order_id)
-        if not order:
-            return False
-        if order.status not in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
+        if not order or order.is_paid or order.status != OrderStatus.PENDING:
             return False
 
         # Restore inventory stock
@@ -155,11 +178,6 @@ class OrderService:
             if prod:
                 self.product_repo.update_stock(prod.id_producto, prod.stock + item.quantity)
 
-        # Refund student wallet if paid with balance
-        if order.customer_role.upper() == "CLIENT" and order.customer_id:
-            self.auth_service.refund_user_balance(order.customer_id, order.total)
-
-        # Update order status
         return self.order_repo.update_status(order_id, OrderStatus.CANCELLED)
 
     def mark_delivered(self, order_id: str) -> bool:
@@ -176,11 +194,9 @@ class OrderService:
         return self.get_accounting_report()
 
     def get_accounting_report(self) -> Dict[str, Any]:
-        """Generate comprehensive financial report using NumPy statistical analytics and time.perf_counter()."""
-        import time
+        """Generate financial report (NumPy sum/mean over delivered tickets)."""
         import numpy as np
 
-        perf_start = time.perf_counter()
         orders = self.order_repo.get_all()
         delivered = [o for o in orders if o.status == OrderStatus.DELIVERED]
         pending = [o for o in orders if o.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY)]
@@ -193,10 +209,7 @@ class OrderService:
         delivered_count = len(delivered)
         total_orders = len(orders)
 
-        # Real NumPy calculations: Mean, Median, and Standard Deviation of ticket amounts
         average_ticket = int(np.mean(delivered_totals)) if len(delivered_totals) > 0 else 0
-        median_ticket = int(np.median(delivered_totals)) if len(delivered_totals) > 0 else 0
-        std_ticket = round(float(np.std(delivered_totals)), 1) if len(delivered_totals) > 0 else 0.0
 
         delivery_rate = round((delivered_count / total_orders * 100), 1) if total_orders > 0 else 0.0
 
@@ -250,7 +263,11 @@ class OrderService:
         for d in top_dishes:
             d["relative_pct"] = round((d["quantity"] / max_qty * 100), 1)
 
-        analytics_time_ms = round((time.perf_counter() - perf_start) * 1000, 2)
+        # Más y menos vendido; el menos vendido incluye platos activos con 0 ventas
+        best_seller = {"name": top_dishes[0]["name"], "quantity": top_dishes[0]["quantity"]} if top_dishes else None
+        sold_by_id = {d["product_id"]: d["quantity"] for d in top_dishes}
+        least = min(self.product_repo.get_all(), key=lambda p: sold_by_id.get(p.id_producto, 0), default=None)
+        worst_seller = {"name": least.name, "quantity": sold_by_id.get(least.id_producto, 0)} if least else None
 
         return {
             "total_orders": total_orders,
@@ -259,13 +276,12 @@ class OrderService:
             "cancelled_count": len(cancelled),
             "total_collected": total_collected,
             "average_ticket": average_ticket,
-            "median_ticket": median_ticket,
-            "std_ticket": std_ticket,
             "delivery_rate": delivery_rate,
             "total_items_sold": total_items_sold,
             "category_sales": category_list,
             "top_dishes": top_dishes[:5],
-            "analytics_time_ms": analytics_time_ms,
+            "best_seller": best_seller,
+            "worst_seller": worst_seller,
         }
 
 

@@ -22,7 +22,9 @@ from punto_casino.core.config import get_category_style, ADMIN_TOOLS_PALETTE
 from punto_casino.services.order_service import OrderService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
+    ICON_OK, ICON_NO, ICON_WARN,
     create_button,
+    set_button_style,
     create_offer_badge,
     create_category_pill,
     create_category_title_header,
@@ -435,15 +437,15 @@ class AdminScreen(MDScreen):
         kpi_row.add_widget(p3)
         card.add_widget(kpi_row)
 
-        # 3 KPI Stats Row (NumPy & time.perf_counter Analytics)
+        # Fila 2: plato más y menos vendido (2 pills a media anchura)
         kpi_row2 = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(6))
-        p4 = self._build_mini_kpi_pill("Mediana (NumPy)", format_currency(report.get("median_ticket", 0)), ADMIN_TOOLS_PALETTE["kpi_median"])
-        p5 = self._build_mini_kpi_pill("Desv. Est. (NumPy)", f"±{format_currency(int(report.get('std_ticket', 0)))}", ADMIN_TOOLS_PALETTE["kpi_std_dev"])
-        p6 = self._build_mini_kpi_pill("perf_counter()", f"{report.get('analytics_time_ms', 0)} ms", ADMIN_TOOLS_PALETTE["kpi_perf_counter"])
-
-        kpi_row2.add_widget(p4)
-        kpi_row2.add_widget(p5)
-        kpi_row2.add_widget(p6)
+        for title, key, color_key in (
+            ("Más vendido", "best_seller", "kpi_best_seller"),
+            ("Menos vendido", "worst_seller", "kpi_worst_seller"),
+        ):
+            seller = report.get(key)
+            label = f"{title} · {seller['quantity']} un." if seller else title
+            kpi_row2.add_widget(self._build_mini_kpi_pill(label, seller["name"] if seller else "—", ADMIN_TOOLS_PALETTE[color_key]))
         card.add_widget(kpi_row2)
 
         return card
@@ -475,6 +477,8 @@ class AdminScreen(MDScreen):
             font_style="Title",
             role="small",
             size_hint_y=0.6,
+            shorten=True,  # nombres de platos largos
+            shorten_from="right",
         )
         pill.add_widget(lbl1)
         pill.add_widget(lbl2)
@@ -886,10 +890,10 @@ class AdminScreen(MDScreen):
         all_orders = self.order_service.order_repo.get_all()
         # Update chip styles
         if hasattr(self, "chip_all") and self.chip_all:
-            self.chip_all.style = "filled" if filter_name == "ALL" else "tonal"
-            self.chip_del.style = "success" if filter_name == "DELIVERED" else "tonal"
-            self.chip_act.style = "offer" if filter_name == "ACTIVE" else "tonal"
-            self.chip_can.style = "danger" if filter_name == "CANCELLED" else "tonal"
+            set_button_style(self.chip_all, "filled" if filter_name == "ALL" else "tonal")
+            set_button_style(self.chip_del, "success" if filter_name == "DELIVERED" else "tonal")
+            set_button_style(self.chip_act, "offer" if filter_name == "ACTIVE" else "tonal")
+            set_button_style(self.chip_can, "danger" if filter_name == "CANCELLED" else "tonal")
         self._update_orders_list(all_orders)
 
     def _on_search_text_changed(self, instance, text: str):
@@ -1163,11 +1167,11 @@ class AdminScreen(MDScreen):
 
         # Status note
         if order.status == OrderStatus.DELIVERED:
-            note_text = "[color=#10B981]✓ Pedido cobrado y entregado en mesón.[/color]"
+            note_text = f"[color=#10B981]{ICON_OK} Pedido cobrado y entregado en mesón.[/color]"
         elif order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.READY):
-            note_text = "[color=#D97706]⚠ Comanda activa en cocina pendiente de entrega.[/color]"
+            note_text = f"[color=#D97706]{ICON_WARN} Comanda activa en cocina pendiente de entrega.[/color]"
         else:
-            note_text = "[color=#EF4444]✕ Comanda cancelada / fondos devueltos.[/color]"
+            note_text = f"[color=#EF4444]{ICON_NO} Comanda cancelada o rechazada.[/color]"
 
         note_lbl = MDLabel(
             text=note_text,

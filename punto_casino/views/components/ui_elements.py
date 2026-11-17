@@ -5,6 +5,7 @@ from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonIcon, MDButtonText
+from kivymd.icon_definitions import md_icons
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel, MDIcon
 
@@ -48,31 +49,7 @@ def create_button(
         - "success": Emerald green background with white text.
     """
     children = []
-
-    if style == "filled":
-        bg_color = UCT_NAVY
-        fg_color = WHITE
-        base_style = "filled"
-    elif style == "offer":
-        bg_color = LIGHT_GREEN
-        fg_color = WHITE
-        base_style = "filled"
-    elif style == "danger":
-        bg_color = CRIMSON_RED
-        fg_color = WHITE
-        base_style = "filled"
-    elif style == "success":
-        bg_color = EMERALD_GREEN
-        fg_color = WHITE
-        base_style = "filled"
-    elif style == "outlined":
-        bg_color = WHITE
-        fg_color = UCT_NAVY
-        base_style = "outlined"
-    else:  # "tonal" default
-        bg_color = UCT_ICE_BLUE
-        fg_color = UCT_NAVY
-        base_style = "tonal"
+    bg_color, fg_color, base_style = _button_colors(style)
 
     if icon:
         icon_kwargs = {
@@ -114,6 +91,39 @@ def create_button(
     if size_hint is not None:
         btn.size_hint = size_hint
     return btn
+
+
+def icon_markup(name: str) -> str:
+    """Ícono Material dentro de un texto con markup=True (Roboto no trae ✓ ✕ ⚠ y salen como ▯)."""
+    return f"[font=Icons]{md_icons[name]}[/font]"
+
+
+ICON_OK = icon_markup("check-circle")
+ICON_NO = icon_markup("close-circle")
+ICON_WARN = icon_markup("alert")
+
+
+def _button_colors(style: str):
+    """(bg, fg, estilo base de KivyMD) para los estilos propios de create_button."""
+    return {
+        "filled": (UCT_NAVY, WHITE, "filled"),
+        "offer": (LIGHT_GREEN, WHITE, "filled"),
+        "danger": (CRIMSON_RED, WHITE, "filled"),
+        "success": (EMERALD_GREEN, WHITE, "filled"),
+        "outlined": (WHITE, UCT_NAVY, "outlined"),
+    }.get(style, (UCT_ICE_BLUE, UCT_NAVY, "tonal"))
+
+
+def set_button_style(btn: MDButton, style: str) -> None:
+    """Cambia el estilo de un botón ya creado con create_button (acepta success/offer/danger)."""
+    bg_color, fg_color, base_style = _button_colors(style)
+    btn.style = base_style
+    btn.md_bg_color = bg_color
+    for child in btn.walk(restrict=True):
+        if isinstance(child, MDButtonText):
+            child.text_color = fg_color
+        elif isinstance(child, MDButtonIcon):
+            child.icon_color = fg_color
 
 
 def create_offer_badge(offer_label: str) -> MDCard:

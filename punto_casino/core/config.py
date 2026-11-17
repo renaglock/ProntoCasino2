@@ -132,9 +132,8 @@ ADMIN_TOOLS_PALETTE = {
     "kpi_average": "#0288D1",                     # Bright Blue - Ticket Promedio
     "kpi_efficiency": "#10B981",                  # Emerald Green - Tasa de Despacho
     "kpi_dispatched": "#0A3871",                  # UCT Navy - Unidades Despachadas
-    "kpi_median": "#0288D1",                      # Bright Blue - Mediana estadística
-    "kpi_std_dev": "#D97706",                     # Warm Amber - Desviación Estándar
-    "kpi_perf_counter": "#0D9488",                # Deep Teal - Tiempo de cómputo
+    "kpi_best_seller": "#10B981",                 # Emerald Green - Plato más vendido
+    "kpi_worst_seller": "#D97706",                # Warm Amber - Plato menos vendido
 
     # Operational Balance Statuses
     "status_delivered": "#10B981",                # Emerald Green - Entregadas

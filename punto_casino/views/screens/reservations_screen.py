@@ -18,11 +18,11 @@ from punto_casino.models.order import (
     PAYMENT_METHOD_LABELS,
 )
 from punto_casino.models.user import UserRole
-from punto_casino.services.order_service import OrderService
+from punto_casino.services.order_service import OrderService, RESERVATION_WINDOW
 from punto_casino.services.auth_service import AuthService
 from punto_casino.utils.formatters import format_currency
 from punto_casino.utils.qr_generator import generate_qr_texture
-from punto_casino.views.components.ui_elements import create_button
+from punto_casino.views.components.ui_elements import create_button, ICON_OK
 
 
 class ReservationsScreen(MDScreen):
@@ -148,7 +148,7 @@ class ReservationsScreen(MDScreen):
         for order in orders:
             pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
             if order.is_paid:
-                status_text = f"✓ Pagado • {pay_lbl}"
+                status_text = f"{ICON_OK} Pagado • {pay_lbl}"
                 status_color = "#10B981"
             else:
                 status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
@@ -208,8 +208,13 @@ class ReservationsScreen(MDScreen):
 
             # Bottom Line: Total & View QR / Detail button with high contrast
             bottom = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(34))
+            time_txt = (
+                f"[color=#D97706]• Retira antes de {(order.created_at + RESERVATION_WINDOW).strftime('%H:%M')}[/color]"
+                if self._is_unpaid_reservation(order)
+                else f"[color=#64748B]• {order.created_at.strftime('%H:%M')}[/color]"
+            )
             total_lbl = MDLabel(
-                text=f"[b]Total: {format_currency(order.total)}[/b] [color=#64748B]• {order.created_at.strftime('%H:%M')}[/color]",
+                text=f"[b]Total: {format_currency(order.total)}[/b] {time_txt}",
                 markup=True,
                 font_style="Label",
                 role="medium",
@@ -235,13 +240,17 @@ class ReservationsScreen(MDScreen):
             card.add_widget(bottom)
             self.orders_container.add_widget(card)
 
+    @staticmethod
+    def _is_unpaid_reservation(order: Order) -> bool:
+        return not order.is_paid and order.status == OrderStatus.PENDING
+
     def _show_order_detail_modal(self, order: Order):
         """Display full comanda breakdown, in-memory QR code texture, and cancellation action."""
         self._hide_modals()
 
         pay_lbl = PAYMENT_METHOD_LABELS.get(order.payment_method, order.payment_method)
         if order.is_paid:
-            status_text = f"✓ Pagado • {pay_lbl}"
+            status_text = f"{ICON_OK} Pagado • {pay_lbl}"
             status_color = "#10B981"
         else:
             status_text = ORDER_STATUS_LABELS.get(order.status, order.status.value)
@@ -259,7 +268,7 @@ class ReservationsScreen(MDScreen):
             modal_h = items_box_h + dp(236)
         else:
             # 28 (padding) + 26 (header) + 8 + items_box_h + 8 + 22 (total) + 8 + 190 (qr) + 6 + 34 (instr) + 8 + 38 (actions)
-            modal_h = items_box_h + (dp(376) if order.is_paid else dp(368))
+            modal_h = items_box_h + dp(376)
 
         # Hide background scroll to avoid any visible leaks
         if hasattr(self, "scroll") and self.scroll:
@@ -424,13 +433,18 @@ class ReservationsScreen(MDScreen):
             # Instructions
             if order.is_paid:
                 instr_text = (
-                    f"[color=#10B981][b]✓ Pedido pagado con {pay_lbl} y en preparación.[/b][/color]\n"
-                    f"[color=#64748B]Muestra este QR en el mesón para retiro express sin hacer filas.[/color]"
+                    f"[color=#10B981][b]{ICON_OK} Pedido pagado con {pay_lbl} y en preparación.[/b][/color]\n"
+                    f"[color=#64748B]Muestra este QR en el mesón. Para anularlo, acércate a caja.[/color]"
                 )
-                instr_h = dp(34)
+            elif self._is_unpaid_reservation(order):
+                deadline = (order.created_at + RESERVATION_WINDOW).strftime("%H:%M")
+                instr_text = (
+                    f"[color=#0A3871]Código de reserva: [b]{order.id_pedido}[/b][/color]\n"
+                    f"[color=#D97706]Paga y retira en caja antes de las [b]{deadline}[/b].[/color]"
+                )
             else:
                 instr_text = "[color=#64748B]Muestra este código en la caja del casino para pagar y retirar tu comanda.[/color]"
-                instr_h = dp(26)
+            instr_h = dp(34)
 
             instr_lbl = MDLabel(
                 text=instr_text,
@@ -446,7 +460,9 @@ class ReservationsScreen(MDScreen):
         # 4. Actions: Cancel order (if eligible) & Close with high contrast
         actions_box = MDBoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(38))
 
-        if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
+        # Solo reservas sin pagar se cancelan desde la app; las pagadas se anulan en caja
+        can_cancel = self._is_unpaid_reservation(order)
+        if can_cancel:
             cancel_btn = create_button(
                 text="Cancelar",
                 icon="close",
@@ -461,7 +477,7 @@ class ReservationsScreen(MDScreen):
         close_btn = create_button(
             text="Cerrar",
             style="filled",
-            size_hint=(0.5 if order.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED) else 1.0, None),
+            size_hint=(0.5 if can_cancel else 1.0, None),
             height=dp(36),
             on_release=lambda x: self._hide_modals(),
         )
