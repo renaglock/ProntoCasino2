@@ -34,6 +34,7 @@ from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.cashier_service import CashierService
+from punto_casino.services.analytics_service import registrar_evento
 from punto_casino.views.screens.login_screen import LoginScreen
 from punto_casino.views.screens.catalog_screen import CatalogScreen
 from punto_casino.views.screens.cashier_screen import CashierScreen
@@ -61,6 +62,8 @@ class ProntoCasinoApp(MDApp):
         self.auth_service = AuthService(self.user_repo)
         self.order_service = OrderService(self.product_repo, self.order_repo, self.auth_service)
         self.cashier_service = CashierService(self.product_repo, self.order_repo, self.auth_service)
+
+        registrar_evento("app_abierta")  # paso 1 del funnel
 
         # Reservas sin pago vencen a la hora: al abrir la app y cada minuto
         self.order_service.expire_reservations()

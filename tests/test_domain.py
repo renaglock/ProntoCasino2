@@ -322,6 +322,27 @@ class TestDomainServices(unittest.TestCase):
         self.assertEqual(r["medio_pago_al_retirar"], {"WEBPAY_PLUS": 1})
         self.assertGreaterEqual(r["perdida_clp"], vencida.total)
 
+    def test_analytics_funnel_and_defensive_logging(self):
+        # 4 sesiones: compra (con re-login), solo login, falla login, abre y cierra
+        sesiones = [
+            ["login_exitoso", "pedido_creado", "login_exitoso"],
+            ["login_exitoso"],
+            ["login_fallido", "login_fallido"],
+            [],
+        ]
+        for pasos in sesiones:
+            analytics_service.registrar_evento("app_abierta")
+            for nombre in pasos:
+                analytics_service.registrar_evento(nombre)
+        self.assertEqual(analytics_service.funnel(), [
+            ("app_abierta", 4, 100.0), ("login_exitoso", 2, 50.0), ("pedido_creado", 1, 25.0),
+        ])
+
+        # Si no se puede escribir, se registra en el log y la app no se cae
+        analytics_service.ARCHIVO = os.path.join("carpeta_que_no_existe", "x.json")
+        with self.assertLogs(level="ERROR"):
+            analytics_service.registrar_evento("app_abierta")
+
     def test_cancel_and_reject_never_give_free_balance(self):
         self.auth_service.quick_login("estudiante")
         user = self.auth_service.current_user

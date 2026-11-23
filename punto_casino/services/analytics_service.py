@@ -1,6 +1,7 @@
 """Analítica local (método MJV): guarda eventos de uso en data/analitica.json y los resume."""
 
 import json
+import logging
 import os
 from collections import Counter
 from datetime import datetime
@@ -22,13 +23,33 @@ def leer_eventos() -> List[Dict[str, Any]]:
 
 def registrar_evento(nombre: str, datos: Optional[Dict[str, Any]] = None) -> None:
     """Agrega un evento {evento, fecha, datos} al JSON local. Nunca rompe el flujo de la app."""
-    eventos = leer_eventos()
-    eventos.append({"evento": nombre, "fecha": datetime.now().isoformat(timespec="seconds"), "datos": datos or {}})
     try:
+        eventos = leer_eventos()
+        eventos.append({"evento": nombre, "fecha": datetime.now().isoformat(timespec="seconds"), "datos": datos or {}})
         with open(ARCHIVO, "w", encoding="utf-8") as f:
             json.dump(eventos, f, indent=4, ensure_ascii=False)
-    except OSError:
-        pass
+    except Exception as e:
+        logging.error(f"Fallo analítica [{nombre}]: {e}")
+
+
+PASOS_FUNNEL = ["app_abierta", "login_exitoso", "pedido_creado"]
+
+
+def funnel() -> List[tuple]:
+    """(paso, sesiones, % respecto del primer paso). Cada app_abierta inicia una sesión;
+    una sesión cuenta en un paso si llegó a ese paso y a todos los anteriores."""
+    sesiones: List[set] = []
+    for e in leer_eventos():
+        if e["evento"] == PASOS_FUNNEL[0]:
+            sesiones.append(set())
+        elif sesiones:
+            sesiones[-1].add(e["evento"])
+    base = len(sesiones)
+    resultado = []
+    for i, paso in enumerate(PASOS_FUNNEL):
+        n = sum(1 for s in sesiones if all(p in s for p in PASOS_FUNNEL[1:i + 1]))
+        resultado.append((paso, n, round(n / base * 100, 1) if base else 0.0))
+    return resultado
 
 
 def items_de(order) -> List[Dict[str, Any]]:

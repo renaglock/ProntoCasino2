@@ -1,0 +1,86 @@
+[
+    {
+        "evento": "app_abierta",
+        "fecha": "2026-11-22T21:48:02",
+        "datos": {}
+    },
+    {
+        "evento": "login_exitoso",
+        "fecha": "2026-11-22T21:48:04",
+        "datos": {
+            "rol": "CLIENT"
+        }
+    },
+    {
+        "evento": "pedido_creado",
+        "fecha": "2026-11-22T21:48:18",
+        "datos": {
+            "pedido": "PED-2CA18D",
+            "medio_pago": "EFECTIVO_POS",
+            "es_reserva": true,
+            "total": 4800,
+            "items": [
+                {
+                    "product_id": "MENU-01",
+                    "nombre": "Pastel de Choclo",
+                    "cantidad": 1
+                }
+            ],
+            "segundos_flujo": 13
+        }
+    },
+    {
+        "evento": "login_exitoso",
+        "fecha": "2026-11-22T21:48:27",
+        "datos": {
+            "rol": "CLIENT"
+        }
+    },
+    {
+        "evento": "app_abierta",
+        "fecha": "2026-11-22T21:48:36",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:41",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:46",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:46",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:47",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:47",
+        "datos": {}
+    },
+    {
+        "evento": "login_fallido",
+        "fecha": "2026-11-22T21:48:49",
+        "datos": {}
+    },
+    {
+        "evento": "app_abierta",
+        "fecha": "2026-11-22T21:48:56",
+        "datos": {}
+    },
+    {
+        "evento": "login_exitoso",
+        "fecha": "2026-11-22T21:49:00",
+        "datos": {
+            "rol": "CLIENT"
+        }
+    }
+]

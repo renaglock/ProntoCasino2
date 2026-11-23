@@ -18,6 +18,7 @@ from kivymd.uix.textfield import (
 
 from punto_casino.models.user import UserRole
 from punto_casino.services.auth_service import AuthService
+from punto_casino.services.analytics_service import registrar_evento
 from punto_casino.views.components.ui_elements import create_button, UCT_NAVY, SLATE_GRAY
 
 
@@ -336,6 +337,7 @@ class LoginScreen(MDScreen):
 
         user = self.auth_service.authenticate_credentials(email, password)
         if user:
+            registrar_evento("login_exitoso", {"rol": user.role.value})
             self.error_label.text = "[color=#10B981]Acceso concedido. Iniciando sesión...[/color]"
             target_screen = "catalog"
             if user.role == UserRole.CASHIER:
@@ -345,12 +347,14 @@ class LoginScreen(MDScreen):
 
             self.on_login_success(user, target_screen)
         else:
+            registrar_evento("login_fallido")
             self.error_label.text = "[color=#EF4444]Credenciales incorrectas o usuario no encontrado[/color]"
 
     def _on_guest_access(self):
         """Allow unauthenticated walk-in guests to browse catalog and order immediately."""
         user = self.auth_service.quick_login("invitado")
         if user:
+            registrar_evento("login_exitoso", {"rol": user.role.value})
             self.on_login_success(user, "catalog")
 
 
