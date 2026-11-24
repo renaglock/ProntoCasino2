@@ -19,7 +19,6 @@ from punto_casino.models.order import (
 from punto_casino.models.user import UserRole
 from punto_casino.services.order_service import OrderService
 from punto_casino.services.auth_service import AuthService
-from punto_casino.services.analytics_service import variante_ab
 from punto_casino.utils.formatters import format_currency
 from punto_casino.views.components.ui_elements import (
     ICON_OK, ICON_WARN,
@@ -548,10 +547,7 @@ class CatalogScreen(MDScreen):
             style="offer",
             size_hint=(0.52, None),
             height=dp(34),
-            # A/B (data/remote_config.json): B abre la pasarela directo en los medios en línea
-            on_release=lambda x: self._set_gateway_view(
-                online=variante_ab(self.auth_service.current_user.id_usuario) == "B"
-            ),
+            on_release=lambda x: self._set_gateway_view(online=False),
         )
         modal_btns.add_widget(cancel_btn)
         modal_btns.add_widget(pay_btn)
