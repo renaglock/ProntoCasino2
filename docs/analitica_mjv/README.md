@@ -44,7 +44,7 @@ El tiempo del flujo corre desde el primer producto agregado al carrito hasta el 
 `PENDING` (reserva sin pago) pasa a `CANCELLED` si pasa más de 1 hora sin retirarse. El stock vuelve al inventario.
 
 ### 2.5 Persistencia
-`data/analitica.json` es una lista de eventos `{"evento", "fecha", "datos"}`. Si el archivo falta o está corrupto, se parte de cero. Un error de escritura nunca interrumpe la venta.
+`data/analytics_events.json` es una lista de eventos `{"evento", "fecha", "datos"}`. Si el archivo falta o está corrupto, se parte de cero. Un error de escritura nunca interrumpe la venta.
 
 ## 3. Privacidad
 Los eventos guardan el ID del pedido, los productos y los montos. No guardan nombre, RUT ni correo.
@@ -54,7 +54,7 @@ Los eventos guardan el ID del pedido, los productos y los montos. No guardan nom
 - Pedidos de la semilla con más de 1 hora pendientes: vencen en el primer arranque.
 
 ## 5. Verificación
-`test_analytics_mjv_events_and_reservation_expiry` cubre los cuatro eventos, el vencimiento, la devolución del stock y el resumen. Las pruebas escriben en `test_temp_analitica.json`, nunca en `data/`.
+`test_analytics_mjv_events_and_reservation_expiry` cubre los cuatro eventos, el vencimiento, la devolución del stock y el resumen. Las pruebas escriben en `test_temp_analytics_events.json`, nunca en `data/`.
 
 ## 6. Rollback
-Quitar las dos líneas de `expire_reservations` en `main.py` desactiva el vencimiento. Borrar `data/analitica.json` reinicia la analítica.
+Quitar las dos líneas de `expire_reservations` en `main.py` desactiva el vencimiento. Borrar `data/analytics_events.json` reinicia la analítica.

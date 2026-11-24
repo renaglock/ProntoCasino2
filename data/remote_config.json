@@ -1,0 +1,7 @@
+{
+    "ab_pasarela": {
+        "descripcion": "A: la pasarela abre en 'Reservar sin pagar'. B: abre en los medios de pago en línea y reservar queda como opción secundaria.",
+        "activo": true,
+        "porcentaje_b": 50
+    }
+}

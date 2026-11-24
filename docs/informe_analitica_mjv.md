@@ -19,7 +19,7 @@ La matriz tiene 6 filas; el mínimo pedido era 3. Cada métrica lleva una acció
 
 ## Paso 2: Implementación en código
 
-Cada evento se graba con `registrar_evento(nombre, datos)`, definida en `punto_casino/services/analytics_service.py`, que lo agrega a `data/analitica.json`. La tabla indica la pantalla y la función exacta donde se dispara cada evento.
+Cada evento se graba con `registrar_evento(nombre, datos)`, definida en `punto_casino/services/analytics_service.py`, que lo agrega a `data/analytics_events.json`. La tabla indica la pantalla y la función exacta donde se dispara cada evento.
 
 | Evento | Pantalla que lo origina | Función que lo registra | Datos guardados |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Cada evento se graba con `registrar_evento(nombre, datos)`, definida en `punto_c
 | `pedido_perdido` | Mis Reservas (cancelar), Caja (rechazar) o automático | `OrderService.cancel_order`, `CashierService.reject_order`, `OrderService.expire_reservations` | Pedido, motivo (`cancelado_cliente`, `rechazado_caja`, `reserva_vencida`), monto en CLP, productos |
 | `reserva_retirada` | Caja (escanear QR o cobrar), Admin o Mis Reservas (cobrar) | `CashierService.process_qr_payment`, `OrderService.mark_delivered` | Pedido, medio con que se pagó en caja, minutos desde la reserva |
 
-Ejemplo de un evento grabado en `data/analitica.json` (verificado con una prueba automática):
+Ejemplo de un evento grabado en `data/analytics_events.json` (verificado con una prueba automática):
 
 ```json
 {

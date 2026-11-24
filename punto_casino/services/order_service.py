@@ -8,7 +8,7 @@ from punto_casino.models.user import UserRole
 from punto_casino.repositories.product_repository import InMemoryProductRepository
 from punto_casino.repositories.order_repository import InMemoryOrderRepository
 from punto_casino.services.auth_service import AuthService
-from punto_casino.services.analytics_service import items_de, registrar_evento
+from punto_casino.services.analytics_service import items_de, registrar_evento, variante_ab
 from punto_casino.utils.qr_generator import generate_pickup_payload
 
 # Plazo para retirar y pagar una reserva sin pago; pasado eso ya no cuenta como reserva activa.
@@ -153,6 +153,7 @@ class OrderService:
             "total": order.total,
             "items": items_de(order),
             "segundos_flujo": segundos,
+            "variante": variante_ab(current_user.id_usuario),
         })
         self.clear_cart()
         return order

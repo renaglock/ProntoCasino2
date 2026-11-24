@@ -1,15 +1,16 @@
-"""Analítica local (método MJV): guarda eventos de uso en data/analitica.json y los resume."""
+"""Analítica local (método MJV): guarda eventos de uso en data/analytics_events.json y los resume."""
 
 import json
 import logging
 import os
+import zlib
 from collections import Counter
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-ARCHIVO = os.path.join(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "data", "analitica.json"
-)
+_DATA = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "data")
+ARCHIVO = os.path.join(_DATA, "analytics_events.json")
+REMOTE_CONFIG = os.path.join(_DATA, "remote_config.json")
 
 
 def leer_eventos() -> List[Dict[str, Any]]:
@@ -17,8 +18,25 @@ def leer_eventos() -> List[Dict[str, Any]]:
     try:
         with open(ARCHIVO, "r", encoding="utf-8") as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
+        return []  # primera ejecución: aún no hay eventos
+    except (OSError, json.JSONDecodeError) as e:
+        logging.warning(f"No se pudo leer {ARCHIVO}: {e}")
         return []
+
+
+def variante_ab(id_usuario: str) -> str:
+    """Variante del A/B de la pasarela según data/remote_config.json; 'A' si está apagado o falla.
+    El hash del usuario lo deja siempre en la misma variante."""
+    try:
+        with open(REMOTE_CONFIG, "r", encoding="utf-8") as f:
+            exp = json.load(f)["ab_pasarela"]
+        if not exp.get("activo"):
+            return "A"
+        return "B" if zlib.crc32(id_usuario.encode()) % 100 < exp.get("porcentaje_b", 50) else "A"
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as e:
+        logging.warning(f"remote_config inválido, se usa la variante A: {e}")
+        return "A"
 
 
 def registrar_evento(nombre: str, datos: Optional[Dict[str, Any]] = None) -> None:

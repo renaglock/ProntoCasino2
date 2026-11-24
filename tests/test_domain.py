@@ -1,5 +1,6 @@
 """Unit tests for domain models, repositories, and application services."""
 
+import json
 import os
 import unittest
 from punto_casino.models.user import UserRole
@@ -342,6 +343,29 @@ class TestDomainServices(unittest.TestCase):
         analytics_service.ARCHIVO = os.path.join("carpeta_que_no_existe", "x.json")
         with self.assertLogs(level="ERROR"):
             analytics_service.registrar_evento("app_abierta")
+
+    def test_ab_variant_from_remote_config(self):
+        original = analytics_service.REMOTE_CONFIG
+        analytics_service.REMOTE_CONFIG = "test_temp_remote_config.json"
+        try:
+            def config(activo, pct):
+                with open(analytics_service.REMOTE_CONFIG, "w", encoding="utf-8") as f:
+                    json.dump({"ab_pasarela": {"activo": activo, "porcentaje_b": pct}}, f)
+
+            config(True, 100)
+            self.assertEqual(analytics_service.variante_ab("u1"), "B")
+            config(True, 0)
+            self.assertEqual(analytics_service.variante_ab("u1"), "A")
+            config(False, 100)
+            self.assertEqual(analytics_service.variante_ab("u1"), "A")
+            # Archivo corrupto: no se cae, usa A y lo deja en el log
+            with open(analytics_service.REMOTE_CONFIG, "w", encoding="utf-8") as f:
+                f.write("{roto")
+            with self.assertLogs(level="WARNING"):
+                self.assertEqual(analytics_service.variante_ab("u1"), "A")
+        finally:
+            os.remove(analytics_service.REMOTE_CONFIG)
+            analytics_service.REMOTE_CONFIG = original
 
     def test_cancel_and_reject_never_give_free_balance(self):
         self.auth_service.quick_login("estudiante")
